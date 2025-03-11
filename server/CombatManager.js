@@ -5,7 +5,7 @@ class CombatManager {
     this.io = io;
     this.roomManager = roomManager;
     this.combats = new Map(); // roomId -> combatState
-    
+
     // Start NPC AI processing loop
     setInterval(() => this.processNpcAi(), 1000);
   }
@@ -24,6 +24,7 @@ class CombatManager {
     }
 
     // Set up player entities from room players
+    // In server/CombatManager.js, in the initiateCombat method
     const playerEntities = players.map(player => ({
       id: player.id,
       name: player.username,
@@ -32,7 +33,7 @@ class CombatManager {
       maxHealth: 100,
       energy: 100,
       maxEnergy: 100,
-      actionPoints: 3,
+      actionPoints: 3.0, // Make sure this is an exact integer
       maxActionPoints: 3,
       actionTimer: 0,
       actionRechargeRate: 5000, // 5 seconds per action point
@@ -63,7 +64,7 @@ class CombatManager {
 
     // Store combat state
     this.combats.set(roomId, combatState);
-    
+
     // Mark room as in combat
     this.roomManager.setRoomCombatStatus(roomId, true);
 
@@ -79,10 +80,12 @@ class CombatManager {
     const enemyCount = Math.max(1, Math.floor(playerCount * 1.5));
     const enemies = [];
 
+    const enemyRechargeMult = 3;
+
     const enemyTypes = [
-      { name: 'Goblin', health: 50, attack: 8, defense: 3, actionRechargeRate: 6000 },
-      { name: 'Orc', health: 80, attack: 12, defense: 6, actionRechargeRate: 7000 },
-      { name: 'Troll', health: 120, attack: 15, defense: 8, actionRechargeRate: 8000 }
+      { name: 'Goblin', health: 30, attack: 8, defense: 3, actionRechargeRate: 6000 * enemyRechargeMult },
+      { name: 'Orc', health: 50, attack: 12, defense: 6, actionRechargeRate: 7000 * enemyRechargeMult },
+      { name: 'Troll', health: 70, attack: 15, defense: 8, actionRechargeRate: 8000 * enemyRechargeMult }
     ];
 
     for (let i = 0; i < enemyCount; i++) {
@@ -128,6 +131,7 @@ class CombatManager {
 
     // Check if player has enough action points
     if (playerEntity.actionPoints < 1) {
+      // console.log(`Player ${socketId} attempted action with insufficient points: ${playerEntity.actionPoints}`);
       return;
     }
 
@@ -135,17 +139,22 @@ class CombatManager {
     const result = this.processAction(combat, playerEntity, actionData);
     if (!result) return;
 
-    // Update the player's action points
-    playerEntity.actionPoints -= 1;
+    // Consume exactly 1 action point
+    playerEntity.actionPoints = Math.max(0, Math.floor(playerEntity.actionPoints) - 1 + (playerEntity.actionPoints % 1));
     playerEntity.lastActionTime = Date.now();
 
-    // Add log entry
+    // console.log(`Player ${socketId} action points: ${playerEntity.actionPoints} after action`);
+    // Add detailed log entry
     combat.log.push({
       time: Date.now(),
-      actor: playerEntity.name,
+      actor: result.actorName,
+      actorId: result.actorId,
+      actorType: 'player',
       action: actionData.type,
       target: result.targetName,
-      message: result.message
+      targetId: result.targetId,
+      message: result.message,
+      details: result.details
     });
 
     // Check for combat end conditions
@@ -156,65 +165,111 @@ class CombatManager {
   }
 
   // Process an action (attack, defend, cast spell)
+  // In server/CombatManager.js, modify processAction method
   processAction(combat, actor, actionData) {
     // Find target entity
     const target = combat.entities.find(entity => entity.id === actionData.targetId);
     if (!target) return null;
 
     let result = {
+      actorId: actor.id,
+      targetId: target.id,
+      actorName: actor.name,
       targetName: target.name,
-      message: ''
+      actionType: actionData.type,
+      message: '',
+      details: {} // Additional details about the action
     };
 
     switch (actionData.type) {
       case 'attack':
         // Calculate damage
-        const baseDamage = actor.stats.attack * (Math.random() * 0.5 + 0.75); // 75-125% of attack
-        const mitigated = target.stats.defense * (Math.random() * 0.3 + 0.2); // 20-50% of defense
+        const baseDamage = actor.stats.attack * (Math.random() * 0.5 + 0.75);
+        const mitigated = target.stats.defense * (Math.random() * 0.3 + 0.2);
         const damage = Math.max(1, Math.floor(baseDamage - mitigated));
-        
+
         // Apply damage
         target.health = Math.max(0, target.health - damage);
-        
+
+        // Store details
+        result.details = {
+          damage: damage,
+          targetHealthBefore: target.health + damage,
+          targetHealthAfter: target.health,
+          actorType: actor.type
+        };
+
         result.message = `${actor.name} attacked ${target.name} for ${damage} damage!`;
         break;
-        
+
       case 'defend':
-        // Apply a defense buff status effect
+        // Apply defense buff
         const defenseBuff = {
           id: uuidv4(),
           type: 'defenseBuff',
-          value: Math.floor(actor.stats.defense * 0.5), // 50% defense increase
-          duration: 2, // lasts for 2 actions
+          value: Math.floor(actor.stats.defense * 0.5),
+          duration: 2,
           applied: Date.now()
         };
-        
+
         actor.statusEffects.push(defenseBuff);
+
+        // Store details
+        result.details = {
+          buffValue: defenseBuff.value,
+          buffDuration: defenseBuff.duration,
+          actorType: actor.type
+        };
+
         result.message = `${actor.name} takes a defensive stance, increasing defense!`;
         break;
-        
+
       case 'cast':
-        // Get spell info
-        const spellCost = 20; // Energy cost
-        
-        // Check if enough energy
+        // Check energy cost
+        const spellCost = 20;
+
         if (actor.energy < spellCost) {
           result.message = `${actor.name} doesn't have enough energy to cast the spell!`;
           return result;
         }
-        
+
         // Calculate spell damage
-        const spellDamage = Math.floor(actor.stats.magicPower * (Math.random() * 0.6 + 0.9)); // 90-150% of magic power
-        
+        const spellDamage = Math.floor(actor.stats.magicPower * (Math.random() * 0.6 + 0.9));
+
         // Apply damage and cost
         target.health = Math.max(0, target.health - spellDamage);
         actor.energy -= spellCost;
-        
+
+        // Store details
+        result.details = {
+          spellDamage: spellDamage,
+          energyCost: spellCost,
+          targetHealthBefore: target.health + spellDamage,
+          targetHealthAfter: target.health,
+          actorEnergyBefore: actor.energy + spellCost,
+          actorEnergyAfter: actor.energy,
+          actorType: actor.type
+        };
+
         result.message = `${actor.name} cast a spell on ${target.name} for ${spellDamage} damage!`;
         break;
-      
+
       default:
         return null;
+    }
+
+    // Check if target was defeated
+    if (target.health === 0 && result.details.targetHealthBefore > 0) {
+      const defeatMessage = `${target.name} has been defeated!`;
+
+      // Add defeat to log separately for better visibility
+      combat.log.push({
+        time: Date.now(),
+        message: defeatMessage,
+        type: 'defeat',
+        entityId: target.id,
+        entityType: target.type
+      });
     }
 
     return result;
@@ -225,28 +280,28 @@ class CombatManager {
     // Process each active combat
     for (const [roomId, combat] of this.combats.entries()) {
       if (!combat.active) continue;
-      
+
       let updated = false;
-      
+
       // Update action points for all entities
       const now = Date.now();
       combat.entities.forEach(entity => {
         // Calculate time since last action
         const timeSinceLastAction = now - entity.lastActionTime;
-        
+
         // Calculate accumulated action points 
         const newActionPoints = entity.actionPoints + (timeSinceLastAction / entity.actionRechargeRate);
-        
+
         // Update action points, capped at max
         const previousActionPoints = entity.actionPoints;
         entity.actionPoints = Math.min(entity.maxActionPoints, newActionPoints);
-        
+
         // Update last action time if action points changed
         if (entity.actionPoints !== previousActionPoints) {
           entity.lastActionTime = now - (timeSinceLastAction % entity.actionRechargeRate);
           updated = true;
         }
-        
+
         // Process status effect durations
         entity.statusEffects = entity.statusEffects.filter(effect => {
           // Keep effects that still have duration left
@@ -257,49 +312,53 @@ class CombatManager {
       // Process NPC actions
       const enemies = combat.entities.filter(entity => entity.type === 'enemy' && entity.health > 0);
       const players = combat.entities.filter(entity => entity.type === 'player' && entity.health > 0);
-      
+
       // Skip if no valid targets
       if (players.length === 0 || enemies.length === 0) {
         this.checkCombatEnd(combat);
         continue;
       }
-      
+
       // Process each enemy
       enemies.forEach(enemy => {
         // Skip if no action points
         if (enemy.actionPoints < 1) return;
-        
+
         // Select a random player as target
         const randomPlayer = players[Math.floor(Math.random() * players.length)];
-        
+
         // Perform attack
         const actionData = {
           type: 'attack',
           targetId: randomPlayer.id
         };
-        
+
         const result = this.processAction(combat, enemy, actionData);
         if (result) {
           // Use an action point
           enemy.actionPoints -= 1;
           enemy.lastActionTime = now;
-          
-          // Add log entry
+
+          // Add detailed log entry
           combat.log.push({
             time: now,
-            actor: enemy.name,
+            actor: result.actorName,
+            actorId: result.actorId,
+            actorType: 'enemy',
             action: 'attack',
             target: result.targetName,
-            message: result.message
+            targetId: result.targetId,
+            message: result.message,
+            details: result.details
           });
-          
+
           updated = true;
         }
       });
-      
+
       // Check combat end conditions
       this.checkCombatEnd(combat);
-      
+
       // Send updates if needed
       if (updated && combat.active) {
         this.io.to(roomId).emit('combatUpdated', combat);
@@ -312,47 +371,61 @@ class CombatManager {
     // Get alive players and enemies
     const alivePlayers = combat.entities.filter(e => e.type === 'player' && e.health > 0);
     const aliveEnemies = combat.entities.filter(e => e.type === 'enemy' && e.health > 0);
-    
-    // Check win/loss conditions
+    let shouldEndCombat = false;
+    let result = '';
+
     if (alivePlayers.length === 0) {
       // Players lost
-      this.endCombat(combat, 'defeat');
-      return true;
+      result = 'defeat';
+      shouldEndCombat = true;
     } else if (aliveEnemies.length === 0) {
       // Players won
-      this.endCombat(combat, 'victory');
+      result = 'victory';
+      shouldEndCombat = true;
+    }
+
+    if (shouldEndCombat) {
+      // Send a final state update before ending combat
+      this.io.to(combat.roomId).emit('combatUpdated', combat);
+
+      // Add a small delay before actually ending the combat
+      // This gives clients time to process the final state
+      setTimeout(() => {
+        this.endCombat(combat, result);
+      }, 500); // 500ms delay should be sufficient
+
       return true;
     }
-    
+
     return false;
   }
 
   // End combat with result
   endCombat(combat, result) {
     if (!combat.active) return;
-    
+
     // Set combat inactive
     combat.active = false;
     combat.endTime = Date.now();
     combat.result = result;
-    
+
     // Add log entry
     combat.log.push({
       time: Date.now(),
       message: result === 'victory' ? 'Victory! All enemies have been defeated!' : 'Defeat! All players have fallen!'
     });
-    
+
     // Set room combat status
     this.roomManager.setRoomCombatStatus(combat.roomId, false);
-    
+
     // Notify players
     this.io.to(combat.roomId).emit('combatEnded', {
       result: result,
       combat: combat
     });
-    
+
     console.log(`Combat ended in room ${combat.roomId} with ${result}`);
-    
+
     // Clean up combat after a delay
     setTimeout(() => {
       this.combats.delete(combat.roomId);

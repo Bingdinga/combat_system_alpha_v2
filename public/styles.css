@@ -32,7 +32,9 @@ body {
     display: block;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     margin-bottom: 1rem;
     text-align: center;
 }
@@ -143,7 +145,8 @@ input[type="text"]:focus {
     border-radius: 4px;
 }
 
-#start-combat-btn, #leave-room-btn {
+#start-combat-btn,
+#leave-room-btn {
     margin-top: 1rem;
     width: 100%;
 }
@@ -217,7 +220,8 @@ input[type="text"]:focus {
     margin-bottom: 0.5rem;
 }
 
-.health-bar-container, .energy-bar-container {
+.health-bar-container,
+.energy-bar-container {
     height: 20px;
     background-color: #333;
     border-radius: 10px;
@@ -404,17 +408,155 @@ input[type="text"]:focus {
     .combat-arena {
         flex-direction: column;
     }
-    
+
     .action-buttons {
         flex-direction: column;
     }
-    
+
     .modal-content {
         width: 95%;
     }
-}-list {
+}
+
+-list {
     list-style: none;
     margin: 1rem 0;
 }
 
-/* #player */
+/* Simplified Action Points Display */
+.action-points-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+}
+
+.action-point {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #333;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-point-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    transition: height 0.3s ease, background-color 0.3s ease;
+    background-color: #cf6679;
+    /* Red when under 50% */
+}
+
+.action-point-fill.medium {
+    background-color: #ffb74d;
+    /* Yellow from 50-99% */
+}
+
+.action-point-fill.full {
+    background-color: #66bb6a;
+    /* Green when full */
+}
+
+/* Smaller version for entity cards */
+.entity-action-points {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.entity-action-point {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #333;
+    position: relative;
+    overflow: hidden;
+}
+
+.entity-action-point-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    transition: height 0.3s ease, background-color 0.3s ease;
+    background-color: #cf6679;
+    /* Red when under 50% */
+}
+
+.entity-action-point-fill.medium {
+    background-color: #ffb74d;
+    /* Yellow from 50-99% */
+}
+
+.entity-action-point-fill.full {
+    background-color: #66bb6a;
+    /* Green when full */
+}
+
+/* Combat Log Styling */
+.combat-log-container {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    height: 350px;
+    /* Fixed height instead of max-height */
+}
+
+.combat-log {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 250px;
+    /* Ensure minimum height */
+}
+
+/* Ensure proper scrollbar appearance */
+.combat-log::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.combat-log::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 4px;
+}
+
+.combat-log::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 4px;
+}
+
+.combat-log::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+
+.combat-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.auto-scroll-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.auto-scroll-toggle input {
+    margin-right: 0.5rem;
+}
+
+.toggle-label {
+    font-size: 0.8rem;
+    color: #999;
+}

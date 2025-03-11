@@ -40,9 +40,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('startCombat', () => {
+    console.log(`Start combat event received from ${socket.id}`);
     const roomId = roomManager.getSocketRoom(socket.id);
     if (roomId) {
+      console.log(`Initiating combat in room ${roomId}`);
       combatManager.initiateCombat(roomId);
+    } else {
+      console.log(`No room found for socket ${socket.id}`);
     }
   });
 

@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Combat System Alpha</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <!-- Login/Room Screen -->
     <div id="room-screen" class="screen active">
         <div class="container">
             <h1>Combat System Alpha</h1>
-            
+
             <div id="login-form">
                 <div class="form-group">
                     <label for="username">Username</label>
@@ -23,7 +25,7 @@
                 </div>
                 <button id="join-btn" class="btn btn-primary">Join Room</button>
             </div>
-            
+
             <div id="room-info" class="hidden">
                 <h2>Room: <span id="room-id-display"></span></h2>
                 <div class="room-details">
@@ -35,7 +37,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Combat Screen -->
     <div id="combat-screen" class="screen">
         <div class="combat-container">
@@ -45,39 +47,45 @@
                     <span id="combat-timer">00:00</span>
                 </div>
             </div>
-            
+
             <div class="combat-arena">
                 <div id="player-entities" class="entity-container">
                     <!-- Player entities will be added dynamically -->
                 </div>
-                
+
                 <div id="enemy-entities" class="entity-container">
                     <!-- Enemy entities will be added dynamically -->
                 </div>
             </div>
-            
+
             <div class="combat-controls">
                 <div class="action-points">
-                    <div>Action Points: <span id="action-points-count">0</span>/<span id="max-action-points">3</span></div>
-                    <div class="action-bar-container">
-                        <div id="action-points-bar" class="action-bar"></div>
+                    <div class="action-points-label">Action Points</div>
+                    <div id="action-points-container" class="action-points-container">
+                        <!-- Action points will be added dynamically -->
                     </div>
                 </div>
-                
+
                 <div class="action-buttons">
                     <button id="attack-btn" class="btn btn-action" disabled>Attack</button>
                     <button id="defend-btn" class="btn btn-action" disabled>Defend</button>
                     <button id="cast-btn" class="btn btn-action" disabled>Cast Spell</button>
                 </div>
             </div>
-            
+
             <div class="combat-log-container">
-                <h3>Combat Log</h3>
-                <div id="combat-log" class="scrollable"></div>
+                <div class="combat-log-header">
+                    <h3>Combat Log</h3>
+                    <label class="auto-scroll-toggle">
+                        <input type="checkbox" id="auto-scroll-toggle" checked>
+                        <span class="toggle-label">Auto-scroll</span>
+                    </label>
+                </div>
+                <div id="combat-log" class="combat-log"></div>
             </div>
         </div>
     </div>
-    
+
     <!-- Result Screen -->
     <div id="result-screen" class="screen">
         <div class="container">
@@ -90,7 +98,7 @@
             <button id="return-btn" class="btn btn-primary">Return to Room</button>
         </div>
     </div>
-    
+
     <!-- Selection Modal -->
     <div id="selection-modal" class="modal">
         <div class="modal-content">
@@ -103,10 +111,10 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Socket.io Client -->
     <script src="/socket.io/socket.io.js"></script>
-    
+
     <!-- Game Scripts -->
     <script src="js/Socket.js"></script>
     <script src="js/Entities.js"></script>
@@ -115,4 +123,5 @@
     <script src="js/CombatManager.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>
