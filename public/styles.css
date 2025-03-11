@@ -1,0 +1,420 @@
+/* General Styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    background-color: #121212;
+    color: #ffffff;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.screen.active {
+    display: block;
+}
+
+h1, h2, h3 {
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    color: #ff4081;
+}
+
+h2 {
+    font-size: 1.8rem;
+    color: #bb86fc;
+}
+
+h3 {
+    font-size: 1.4rem;
+    color: #03dac6;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #bb86fc;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #333;
+    border-radius: 4px;
+    background-color: #1e1e1e;
+    color: #fff;
+    font-size: 1rem;
+}
+
+input[type="text"]:focus {
+    border-color: #bb86fc;
+    outline: none;
+}
+
+/* Button Styles */
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #bb86fc;
+    color: #000;
+}
+
+.btn-primary:hover {
+    background-color: #9969da;
+}
+
+.btn-secondary {
+    background-color: #333;
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    background-color: #444;
+}
+
+.btn-action {
+    background-color: #cf6679;
+    color: #000;
+}
+
+.btn-action:hover {
+    background-color: #b4505f;
+}
+
+.btn:disabled {
+    background-color: #666;
+    cursor: not-allowed;
+}
+
+/* Room Screen Styles */
+#login-form {
+    margin-bottom: 2rem;
+}
+
+#room-info {
+    background-color: #1e1e1e;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+#player-list li {
+    padding: 0.5rem;
+    background-color: #333;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
+#start-combat-btn, #leave-room-btn {
+    margin-top: 1rem;
+    width: 100%;
+}
+
+#leave-room-btn {
+    margin-top: 0.5rem;
+}
+
+/* Combat Screen Styles */
+.combat-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.combat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #333;
+}
+
+.combat-timer {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #03dac6;
+}
+
+.combat-arena {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.entity-container {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.entity-card {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 1rem;
+    position: relative;
+}
+
+.entity-card.player {
+    border-left: 4px solid #bb86fc;
+}
+
+.entity-card.enemy {
+    border-left: 4px solid #cf6679;
+}
+
+.entity-card.selected {
+    box-shadow: 0 0 0 2px #03dac6;
+}
+
+.entity-card.dead {
+    opacity: 0.6;
+}
+
+.entity-name {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.health-bar-container, .energy-bar-container {
+    height: 20px;
+    background-color: #333;
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.health-bar {
+    height: 100%;
+    background-color: #cf6679;
+    transition: width 0.3s ease;
+}
+
+.energy-bar {
+    height: 100%;
+    background-color: #03dac6;
+    transition: width 0.3s ease;
+}
+
+.status-effects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.status-effect {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    background-color: #333;
+}
+
+.status-effect.buff {
+    color: #03dac6;
+}
+
+.status-effect.debuff {
+    color: #cf6679;
+}
+
+/* Combat Controls */
+.combat-controls {
+    background-color: #1e1e1e;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.action-points {
+    margin-bottom: 1rem;
+}
+
+.action-bar-container {
+    height: 10px;
+    background-color: #333;
+    border-radius: 5px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.action-bar {
+    height: 100%;
+    background-color: #bb86fc;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.action-buttons .btn {
+    flex: 1;
+}
+
+/* Combat Log */
+.combat-log-container {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 1rem;
+    max-height: 250px;
+}
+
+.scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.combat-log .log-entry {
+    padding: 0.5rem;
+    border-bottom: 1px solid #333;
+}
+
+.combat-log .log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-time {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+/* Result Screen */
+#result-title {
+    margin-bottom: 1rem;
+}
+
+#result-message {
+    font-size: 1.2rem;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.stats-container {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+#combat-stats {
+    margin-top: 1rem;
+}
+
+#return-btn {
+    width: 100%;
+}
+
+/* Selection Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 90%;
+    max-width: 500px;
+}
+
+.selection-list {
+    margin: 1rem 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.selection-option {
+    padding: 0.75rem;
+    background-color: #333;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.selection-option:hover {
+    background-color: #444;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Media Queries for Responsive Design */
+@media (max-width: 768px) {
+    .combat-arena {
+        flex-direction: column;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .modal-content {
+        width: 95%;
+    }
+}-list {
+    list-style: none;
+    margin: 1rem 0;
+}
+
+/* #player */
