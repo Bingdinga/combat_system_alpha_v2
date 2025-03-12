@@ -83,9 +83,9 @@ class CombatManager {
     const enemyRechargeMult = 3;
 
     const enemyTypes = [
-      { name: 'Goblin', health: 30, attack: 8, defense: 3, actionRechargeRate: 6000 * enemyRechargeMult },
-      { name: 'Orc', health: 50, attack: 12, defense: 6, actionRechargeRate: 7000 * enemyRechargeMult },
-      { name: 'Troll', health: 70, attack: 15, defense: 8, actionRechargeRate: 8000 * enemyRechargeMult }
+      { name: 'Goblin', health: 30, attack: 8, defense: 3, actionRechargeRate: 7000 * enemyRechargeMult },
+      { name: 'Orc', health: 50, attack: 12, defense: 6, actionRechargeRate: 9000 * enemyRechargeMult },
+      { name: 'Troll', health: 70, attack: 15, defense: 8, actionRechargeRate: 13000 * enemyRechargeMult }
     ];
 
     for (let i = 0; i < enemyCount; i++) {
@@ -224,6 +224,7 @@ class CombatManager {
         result.message = `${actor.name} takes a defensive stance, increasing defense!`;
         break;
 
+      // In the processAction method, replace the 'cast' case with:
       case 'cast':
         // Check energy cost
         const spellCost = 20;
@@ -233,29 +234,91 @@ class CombatManager {
           return result;
         }
 
-        // Calculate spell damage
-        const spellDamage = Math.floor(actor.stats.magicPower * (Math.random() * 0.6 + 0.9));
+        // Get spell type from action data
+        const spellType = actionData.spellType || 'fireball'; // Default to fireball
 
-        // Apply damage and cost
-        target.health = Math.max(0, target.health - spellDamage);
-        actor.energy -= spellCost;
+        switch (spellType) {
+          case 'fireball':
+            // Calculate spell damage
+            const spellDamage = Math.floor(actor.stats.magicPower * (Math.random() * 0.6 + 0.9));
 
-        // Store details
-        result.details = {
-          spellDamage: spellDamage,
-          energyCost: spellCost,
-          targetHealthBefore: target.health + spellDamage,
-          targetHealthAfter: target.health,
-          actorEnergyBefore: actor.energy + spellCost,
-          actorEnergyAfter: actor.energy,
-          actorType: actor.type
-        };
+            // Apply damage and cost
+            target.health = Math.max(0, target.health - spellDamage);
+            actor.energy -= spellCost;
 
-        result.message = `${actor.name} cast a spell on ${target.name} for ${spellDamage} damage!`;
+            // Store details
+            result.details = {
+              spellType: 'fireball',
+              spellDamage: spellDamage,
+              energyCost: spellCost,
+              targetHealthBefore: target.health + spellDamage,
+              targetHealthAfter: target.health,
+              actorEnergyBefore: actor.energy + spellCost,
+              actorEnergyAfter: actor.energy,
+              actorType: actor.type
+            };
+
+            result.message = `${actor.name} cast Fireball on ${target.name} for ${spellDamage} damage!`;
+            break;
+
+          case 'ironskin':
+            // Create defense buff
+            const defenseBuff = {
+              id: uuidv4(),
+              type: 'ironskinBuff',
+              value: 3, // Flat defense increase of 3
+              duration: 3, // Lasts for 3 turns
+              applied: Date.now()
+            };
+
+            // Apply buff to target
+            target.statusEffects.push(defenseBuff);
+            actor.energy -= spellCost;
+
+            // Store details
+            result.details = {
+              spellType: 'ironskin',
+              buffValue: defenseBuff.value,
+              buffDuration: defenseBuff.duration,
+              energyCost: spellCost,
+              actorEnergyBefore: actor.energy + spellCost,
+              actorEnergyAfter: actor.energy,
+              actorType: actor.type
+            };
+
+            result.message = `${actor.name} cast Ironskin on ${target.name}, increasing defense by ${defenseBuff.value}!`;
+            break;
+
+          case 'heal':
+            // Calculate heal amount (slightly more than fireball damage)
+            const healAmount = Math.floor(actor.stats.magicPower * (Math.random() * 0.7 + 1.0));
+
+            // Apply healing (capped at max health)
+            const healedHealth = Math.min(target.maxHealth, target.health + healAmount);
+            const actualHealAmount = healedHealth - target.health;
+            target.health = healedHealth;
+            actor.energy -= spellCost;
+
+            // Store details
+            result.details = {
+              spellType: 'heal',
+              healAmount: actualHealAmount,
+              energyCost: spellCost,
+              targetHealthBefore: target.health - actualHealAmount,
+              targetHealthAfter: target.health,
+              actorEnergyBefore: actor.energy + spellCost,
+              actorEnergyAfter: actor.energy,
+              actorType: actor.type
+            };
+
+            result.message = `${actor.name} cast Heal on ${target.name}, restoring ${actualHealAmount} health!`;
+            break;
+
+          default:
+            // Unknown spell type
+            return null;
+        }
         break;
-
-      default:
-        return null;
     }
 
     // Check if target was defeated

@@ -65,16 +65,24 @@ class Entity {
         return this.actionPoints >= 1 && this.isAlive();
     }
 
-    // Get effective stat value considering status effects
+    // Update getEffectiveStat method
     getEffectiveStat(statName) {
         let baseValue = this.stats[statName] || 0;
         let modifier = 0;
 
         // Apply relevant status effects
         for (const effect of this.statusEffects) {
-            if (effect.type === `${statName}Buff`) {
+            const effectType = effect.type;
+            const registryEntry = window.StatusEffectRegistry && window.StatusEffectRegistry[effectType];
+
+            if (registryEntry && registryEntry.affectedStat === statName) {
+                // Apply modifier if this effect impacts this stat
                 modifier += effect.value;
-            } else if (effect.type === `${statName}Debuff`) {
+            } else if (effectType === `${statName}Buff`) {
+                // Fallback for legacy code
+                modifier += effect.value;
+            } else if (effectType === `${statName}Debuff`) {
+                // Fallback for legacy code
                 modifier -= effect.value;
             }
         }

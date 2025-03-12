@@ -3,13 +3,16 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Silkscreen', monospace; /* Change to VT323 as default */}
+    font-family: 'Silkscreen', monospace;
+    /* Change to VT323 as default */
+}
 
 body {
     background-color: #121212;
     color: #ffffff;
     line-height: 1.4;
-    font-size: 22px; /* Slightly larger default font size for better readability */
+    font-size: 22px;
+    /* Slightly larger default font size for better readability */
 }
 
 .container {
@@ -242,28 +245,6 @@ input[type="text"]:focus {
     height: 100%;
     background-color: #d4d244;
     transition: width 0.3s ease;
-}
-
-.status-effects {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    margin-top: 0.2rem;
-}
-
-.status-effect {
-    padding: 0.2rem 0.2rem;
-    border-radius: 4px;
-    font-size: 1rem;
-    background-color: #333;
-}
-
-.status-effect.buff {
-    color: #00ac87;
-}
-
-.status-effect.debuff {
-    color: #cf6679;
 }
 
 /* Combat Controls */
@@ -593,6 +574,53 @@ input[type="text"]:focus {
     color: #cf6679;
 }
 
+/* Container for status effects */
+.status-effects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.2rem;
+}
+
+/* Base styles for all status effects */
+.status-effect {
+    padding: 0.2rem 0.2rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: #333;
+}
+
+/* Generic buff/debuff styles (for backwards compatibility) */
+.status-effect.buff {
+    color: #00ac87;
+}
+
+.status-effect.debuff {
+    color: #cf6679;
+}
+
+/* Specific buff styles */
+.status-effect.ironskin {
+    color: #f38825;
+    /* Blue for Ironskin */
+    /* background-color: #775b40; */
+    /* border: 1px solid #000000; */
+}
+
+.status-effect.strength {
+    color: #e74c3c;
+    /* Red for Strength */
+    background-color: #4a1a1a;
+    border: 1px solid #d93b3b;
+}
+
+.status-effect.haste {
+    color: #f1c40f;
+    /* Yellow for Haste */
+    background-color: #4a3e1a;
+    border: 1px solid #d9bc3b;
+}
+
 @keyframes float-fade {
     0% {
         opacity: 0;
@@ -613,4 +641,14 @@ input[type="text"]:focus {
 /* Make sure entity cards have position relative for absolute positioning */
 .entity-card {
     position: relative;
+}
+
+.option-name {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.option-description {
+    font-size: 0.8rem;
+    color: #aaa;
 }

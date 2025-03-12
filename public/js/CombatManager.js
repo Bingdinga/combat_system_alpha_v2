@@ -153,15 +153,41 @@ class CombatManager {
         this.log = combatState.log;
 
         newLogEntries.forEach(entry => {
-            // Handle attack and spell damage
-            if (entry.action === 'attack' || entry.action === 'cast') {
-                if (entry.details && entry.details.damage) {
-                    this.combatUI.showFloatingText(
-                        entry.targetId,
-                        `-${entry.details.damage}`,
-                        'damage'
-                    );
-                }
+            // In CombatManager.js, replace that section with:
+            // Handle attack damage
+            if (entry.action === 'attack' && entry.details && entry.details.damage) {
+                this.combatUI.showFloatingText(
+                    entry.targetId,
+                    `-${entry.details.damage}`,
+                    'damage'
+                );
+            }
+
+            // Handle fireball spell damage
+            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'fireball' && entry.details.spellDamage) {
+                this.combatUI.showFloatingText(
+                    entry.targetId,
+                    `-${entry.details.spellDamage}`,
+                    'damage'
+                );
+            }
+
+            // Handle healing
+            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'heal' && entry.details.healAmount) {
+                this.combatUI.showFloatingText(
+                    entry.targetId,
+                    `+${entry.details.healAmount}`,
+                    'heal'
+                );
+            }
+
+            // Handle Ironskin
+            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'ironskin') {
+                this.combatUI.showFloatingText(
+                    entry.targetId,
+                    `+DEF ${entry.details.buffValue}`,
+                    'buff'
+                );
             }
 
             // Handle defeat messages
@@ -319,7 +345,8 @@ class CombatManager {
 
         // Send action to server
         this.socketManager.performAction({
-            type: actionType,
+            type: actionType.startsWith('cast:') ? 'cast' : actionType,
+            spellType: actionType.startsWith('cast:') ? actionType.split(':')[1] : undefined,
             targetId: targetId
         });
 

@@ -198,8 +198,17 @@ class CombatUI {
 
             entity.statusEffects.forEach(effect => {
                 const effectEl = document.createElement('span');
-                effectEl.className = `status-effect ${effect.type.includes('Buff') ? 'buff' : 'debuff'}`;
-                effectEl.textContent = this.formatStatusEffectName(effect.type);
+                const effectType = effect.type;
+
+                if (window.StatusEffectRegistry && window.StatusEffectRegistry[effectType]) {
+                    // Use the registry for styling
+                    effectEl.className = `status-effect ${window.StatusEffectRegistry[effectType].cssClass}`;
+                } else {
+                    // Fallback to generic buff/debuff styling
+                    effectEl.className = `status-effect ${effectType.includes('Buff') ? 'buff' : 'debuff'}`;
+                }
+
+                effectEl.textContent = this.formatStatusEffectName(effectType);
                 statusEffectsEl.appendChild(effectEl);
             });
 
@@ -211,7 +220,12 @@ class CombatUI {
 
     // Format status effect name for display
     formatStatusEffectName(effectType) {
-        // Remove "Buff" or "Debuff" suffix and capitalize
+        // Check if we have this effect in our registry
+        if (window.StatusEffectRegistry && window.StatusEffectRegistry[effectType]) {
+            return window.StatusEffectRegistry[effectType].displayName;
+        }
+
+        // Fallback to legacy code for backward compatibility
         let name = effectType.replace(/Buff|Debuff/g, '');
         return name.charAt(0).toUpperCase() + name.slice(1);
     }
@@ -275,8 +289,17 @@ class CombatUI {
 
             entity.statusEffects.forEach(effect => {
                 const effectEl = document.createElement('span');
-                effectEl.className = `status-effect ${effect.type.includes('Buff') ? 'buff' : 'debuff'}`;
-                effectEl.textContent = this.formatStatusEffectName(effect.type);
+                const effectType = effect.type;
+
+                if (window.StatusEffectRegistry && window.StatusEffectRegistry[effectType]) {
+                    // Use the registry for styling
+                    effectEl.className = `status-effect ${window.StatusEffectRegistry[effectType].cssClass}`;
+                } else {
+                    // Fallback to generic buff/debuff styling
+                    effectEl.className = `status-effect ${effectType.includes('Buff') ? 'buff' : 'debuff'}`;
+                }
+
+                effectEl.textContent = this.formatStatusEffectName(effectType);
                 statusEffectsEl.appendChild(effectEl);
             });
 
@@ -383,6 +406,68 @@ class CombatUI {
         this.combatTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
+    // Add this new method to CombatUI class:
+    showSpellSelectionModal() {
+        const spellOptions = [
+            { id: 'cast:fireball', name: 'Fireball', description: 'Deal fire damage to an enemy' },
+            { id: 'cast:ironskin', name: 'Ironskin', description: 'Increase an ally\'s defense by 3' },
+            { id: 'cast:heal', name: 'Heal', description: 'Restore health to an ally' }
+        ];
+
+        // Set title
+        this.selectionTitle.textContent = 'Select a Spell';
+
+        // Clear options
+        this.selectionOptions.innerHTML = '';
+
+        // Add options with descriptions
+        spellOptions.forEach(option => {
+            const optionEl = document.createElement('div');
+            optionEl.className = 'selection-option';
+            optionEl.setAttribute('data-option-id', option.id);
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'option-name';
+            nameEl.textContent = option.name;
+
+            const descEl = document.createElement('div');
+            descEl.className = 'option-description';
+            descEl.textContent = option.description;
+
+            optionEl.appendChild(nameEl);
+            optionEl.appendChild(descEl);
+
+            // Add click handler
+            optionEl.addEventListener('click', () => {
+                this.hideSelectionModal();
+
+                // Now handle target selection based on spell type
+                const entities = this.combatManager.getEntities();
+                const spellType = option.id;
+
+                // Pass the full spell type (e.g., 'cast:fireball') to determine targets
+                if (spellType === 'cast:fireball') {
+                    this.selectTarget('fireball', entities, target => {
+                        this.combatManager.performAction(spellType, target.id);
+                    });
+                } else if (spellType === 'cast:ironskin') {
+                    this.selectTarget('ironskin', entities, target => {
+                        this.combatManager.performAction(spellType, target.id);
+                    });
+                } else if (spellType === 'cast:heal') {
+                    this.selectTarget('heal', entities, target => {
+                        this.combatManager.performAction(spellType, target.id);
+                    });
+                }
+            });
+
+            this.selectionOptions.appendChild(optionEl);
+        });
+
+        // Show modal
+        this.selectionModal.classList.add('active');
+    }
+
     // Show target selection modal
     showSelectionModal(title, options, callback) {
         // Set title
@@ -465,10 +550,8 @@ class CombatUI {
         this.castBtn.addEventListener('click', () => {
             if (this.castBtn.disabled) return;
 
-            const entities = this.combatManager.getEntities();
-            this.selectTarget(ActionTypes.CAST, entities, target => {
-                this.combatManager.performAction(ActionTypes.CAST, target.id);
-            });
+            // Show spell selection first
+            this.showSpellSelectionModal();
         });
 
         // Cancel selection button
