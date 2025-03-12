@@ -31,8 +31,8 @@ io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
   // Room events
-  socket.on('joinRoom', ({ username, roomId }) => {
-    roomManager.joinRoom(socket, username, roomId);
+  socket.on('joinRoom', ({ username, roomId, characterClass }) => {
+    roomManager.joinRoom(socket, username, roomId, characterClass);
   });
 
   socket.on('leaveRoom', () => {

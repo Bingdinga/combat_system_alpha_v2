@@ -14,7 +14,6 @@ class CombatUI {
         this.maxActionPoints = document.getElementById('max-action-points');
         this.actionPointsBar = document.getElementById('action-points-bar');
         this.attackBtn = document.getElementById('attack-btn');
-        this.defendBtn = document.getElementById('defend-btn');
         this.castBtn = document.getElementById('cast-btn');
         this.combatTimer = document.getElementById('combat-timer');
 
@@ -130,21 +129,57 @@ class CombatUI {
 
         // Create basic entity info
         const infoDiv = document.createElement('div');
-        infoDiv.innerHTML = `
-      <div class="entity-name">${entity.name}${isLocalPlayer ? ' (You)' : ''}</div>
-      <div class="entity-health">
-        <div>HP: ${entity.health}/${entity.maxHealth}</div>
-        <div class="health-bar-container">
-          <div class="health-bar" style="width: ${typeof entity.getHealthPercentage === 'function' ? entity.getHealthPercentage() : (entity.health / entity.maxHealth * 100)}%"></div>
-        </div>
+
+        // Create the name row with character class on the right
+        const nameRowDiv = document.createElement('div');
+        nameRowDiv.className = 'entity-name-row';
+
+        // Create name span
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'entity-name';
+        nameSpan.textContent = `${entity.name}${isLocalPlayer ? ' (You)' : ''}`;
+        nameRowDiv.appendChild(nameSpan);
+
+        // Add class display if available
+        if (entity.characterClass) {
+            const classSpan = document.createElement('span');
+            classSpan.className = 'entity-class';
+            classSpan.textContent = entity.characterClass.charAt(0) + entity.characterClass.slice(1).toLowerCase();
+            nameRowDiv.appendChild(classSpan);
+        }
+
+        // Add name row to info div
+        infoDiv.appendChild(nameRowDiv);
+
+        // Create the stats section with health and AC on the same line
+        const statsDiv = document.createElement('div');
+        statsDiv.className = 'entity-stats';
+
+        // Create health and AC row
+        const statRowDiv = document.createElement('div');
+        statRowDiv.className = 'entity-stat-row';
+        statRowDiv.innerHTML = `
+        <div class="entity-hp">HP: ${entity.health}/${entity.maxHealth}</div>
+        <div class="entity-ac">AC: ${entity.ac || 10}</div>
+    `;
+        statsDiv.appendChild(statRowDiv);
+
+        // Add health bar
+        statsDiv.innerHTML += `
+      <div class="health-bar-container">
+        <div class="health-bar" style="width: ${typeof entity.getHealthPercentage === 'function' ?
+                entity.getHealthPercentage() : (entity.health / entity.maxHealth * 100)}%"></div>
       </div>
       <div class="entity-energy">
         <div>Energy: ${entity.energy}/${entity.maxEnergy}</div>
         <div class="energy-bar-container">
-          <div class="energy-bar" style="width: ${typeof entity.getEnergyPercentage === 'function' ? entity.getEnergyPercentage() : (entity.energy / entity.maxEnergy * 100)}%"></div>
+          <div class="energy-bar" style="width: ${typeof entity.getEnergyPercentage === 'function' ?
+                entity.getEnergyPercentage() : (entity.energy / entity.maxEnergy * 100)}%"></div>
         </div>
       </div>
     `;
+
+        infoDiv.appendChild(statsDiv);
 
         // Create action points display for entity
         const actionPointsDiv = document.createElement('div');
@@ -238,7 +273,13 @@ class CombatUI {
         // Update health
         const healthBarEl = entityEl.querySelector('.health-bar');
         healthBarEl.style.width = `${entity.getHealthPercentage ? entity.getHealthPercentage() : (entity.health / entity.maxHealth * 100)}%`;
-        entityEl.querySelector('.entity-health > div').textContent = `HP: ${entity.health}/${entity.maxHealth}`;
+        entityEl.querySelector('.entity-hp').textContent = `HP: ${entity.health}/${entity.maxHealth}`;
+
+        // Update AC
+        const acEl = entityEl.querySelector('.entity-ac');
+        if (acEl) {
+            acEl.textContent = `AC: ${entity.ac || 10}`;
+        }
 
         // Update energy
         const energyBarEl = entityEl.querySelector('.energy-bar');
@@ -246,36 +287,39 @@ class CombatUI {
         entityEl.querySelector('.entity-energy > div').textContent = `Energy: ${entity.energy}/${entity.maxEnergy}`;
 
         // Update action points
-        const actionPoints = entityEl.querySelectorAll('.entity-action-point');
+        const actionPointElements = entityEl.querySelectorAll('.entity-action-point');
 
-        actionPoints.forEach((actionPoint, index) => {
-            const fill = actionPoint.querySelector('.entity-action-point-fill');
+        if (actionPointElements && actionPointElements.length > 0) {
+            actionPointElements.forEach((actionPoint, index) => {
+                const fill = actionPoint.querySelector('.entity-action-point-fill');
+                if (!fill) return;
 
-            // Calculate fill percentage for this action point
-            let fillPercentage;
-            if (index < Math.floor(entity.actionPoints)) {
-                // Full action point
-                fillPercentage = 100;
-                fill.className = 'entity-action-point-fill full';
-            } else if (index === Math.floor(entity.actionPoints)) {
-                // Partially filled action point
-                fillPercentage = (entity.actionPoints - Math.floor(entity.actionPoints)) * 100;
+                // Calculate fill percentage for this action point
+                let fillPercentage;
+                if (index < Math.floor(entity.actionPoints)) {
+                    // Full action point
+                    fillPercentage = 100;
+                    fill.className = 'entity-action-point-fill full';
+                } else if (index === Math.floor(entity.actionPoints)) {
+                    // Partially filled action point
+                    fillPercentage = (entity.actionPoints - Math.floor(entity.actionPoints)) * 100;
 
-                // Set class based on charge percentage
-                if (fillPercentage < 50) {
-                    fill.className = 'entity-action-point-fill';
+                    // Set class based on charge percentage
+                    if (fillPercentage < 50) {
+                        fill.className = 'entity-action-point-fill';
+                    } else {
+                        fill.className = 'entity-action-point-fill medium';
+                    }
                 } else {
-                    fill.className = 'entity-action-point-fill medium';
+                    // Empty action point
+                    fillPercentage = 0;
+                    fill.className = 'entity-action-point-fill';
                 }
-            } else {
-                // Empty action point
-                fillPercentage = 0;
-                fill.className = 'entity-action-point-fill';
-            }
 
-            // Update the fill height
-            fill.style.height = `${fillPercentage}%`;
-        });
+                // Update the fill height
+                fill.style.height = `${fillPercentage}%`;
+            });
+        }
 
         // Update status effects
         const statusEffectsContainer = entityEl.querySelector('.status-effects');
@@ -392,9 +436,6 @@ class CombatUI {
         // Attack button
         this.attackBtn.disabled = !canAct;
 
-        // Defend button
-        this.defendBtn.disabled = !canAct;
-
         // Cast spell button
         this.castBtn.disabled = !canAct || !hasEnergy;
     }
@@ -406,13 +447,30 @@ class CombatUI {
         this.combatTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
-    // Add this new method to CombatUI class:
     showSpellSelectionModal() {
+        const localPlayer = this.combatManager.getLocalPlayer();
+        if (!localPlayer) return;
+
+        // Base spell options all classes have
         const spellOptions = [
-            { id: 'cast:fireball', name: 'Fireball', description: 'Deal fire damage to an enemy' },
-            { id: 'cast:ironskin', name: 'Ironskin', description: 'Increase an ally\'s defense by 3' },
-            { id: 'cast:heal', name: 'Heal', description: 'Restore health to an ally' }
+            { id: 'cast:heal', name: 'Healing Word', description: 'Restore 1d4 + WIS health to an ally' }
         ];
+
+        // Add class-specific spells
+        if (localPlayer.characterClass === 'WIZARD') {
+            spellOptions.push(
+                { id: 'cast:fireball', name: 'Fireball', description: 'Deal 2d6 + INT fire damage to an enemy' },
+                { id: 'cast:shield', name: 'Shield', description: 'Increase your AC by 5 for 3 rounds' }
+            );
+        } else if (localPlayer.characterClass === 'FIGHTER') {
+            spellOptions.push(
+                { id: 'cast:second_wind', name: 'Second Wind', description: 'Recover 1d10 + level hit points' }
+            );
+        } else if (localPlayer.characterClass === 'ROGUE') {
+            spellOptions.push(
+                { id: 'cast:cunning_action', name: 'Cunning Action', description: 'Take an extra action this turn' }
+            );
+        }
 
         // Set title
         this.selectionTitle.textContent = 'Select a Spell';
@@ -444,20 +502,25 @@ class CombatUI {
                 // Now handle target selection based on spell type
                 const entities = this.combatManager.getEntities();
                 const spellType = option.id;
+                const spellName = option.id.split(':')[1];
 
-                // Pass the full spell type (e.g., 'cast:fireball') to determine targets
                 if (spellType === 'cast:fireball') {
                     this.selectTarget('fireball', entities, target => {
                         this.combatManager.performAction(spellType, target.id);
                     });
-                } else if (spellType === 'cast:ironskin') {
-                    this.selectTarget('ironskin', entities, target => {
-                        this.combatManager.performAction(spellType, target.id);
-                    });
+                } else if (spellType === 'cast:shield') {
+                    // Shield targets self directly
+                    this.combatManager.performAction(spellType, localPlayer.id);
                 } else if (spellType === 'cast:heal') {
                     this.selectTarget('heal', entities, target => {
                         this.combatManager.performAction(spellType, target.id);
                     });
+                } else if (spellType === 'cast:second_wind') {
+                    // Second Wind targets self directly
+                    this.combatManager.performAction(spellType, localPlayer.id);
+                } else if (spellType === 'cast:cunning_action') {
+                    // Cunning Action targets self directly
+                    this.combatManager.performAction(spellType, localPlayer.id);
                 }
             });
 
@@ -538,13 +601,6 @@ class CombatUI {
             this.selectTarget(ActionTypes.ATTACK, entities, target => {
                 this.combatManager.performAction(ActionTypes.ATTACK, target.id);
             });
-        });
-
-        this.defendBtn.addEventListener('click', () => {
-            if (this.defendBtn.disabled) return;
-
-            const localPlayer = this.combatManager.getLocalPlayer();
-            this.combatManager.performAction(ActionTypes.DEFEND, localPlayer.id);
         });
 
         this.castBtn.addEventListener('click', () => {

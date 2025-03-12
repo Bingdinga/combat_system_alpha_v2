@@ -155,25 +155,81 @@ class CombatManager {
         newLogEntries.forEach(entry => {
             // In CombatManager.js, replace that section with:
             // Handle attack damage
-            if (entry.action === 'attack' && entry.details && entry.details.damage) {
-                this.combatUI.showFloatingText(
-                    entry.targetId,
-                    `-${entry.details.damage}`,
-                    'damage'
-                );
+            if (entry.action === 'attack') {
+                // Handle critical success
+                if (entry.details && entry.details.isCritical) {
+                    this.combatUI.showFloatingText(
+                        entry.targetId,
+                        `CRITICAL! -${entry.details.damage}`,
+                        'damage'
+                    );
+                }
+                // Handle critical failure
+                else if (entry.details && entry.details.isCriticalFail) {
+                    this.combatUI.showFloatingText(
+                        entry.actorId,
+                        `FUMBLE!`,
+                        'debuff'
+                    );
+                }
+                // Handle normal hit
+                else if (entry.details && entry.details.damage) {
+                    this.combatUI.showFloatingText(
+                        entry.targetId,
+                        `-${entry.details.damage}`,
+                        'damage'
+                    );
+                }
+                // Handle miss
+                else if (entry.details && entry.details.isHit === false) {
+                    this.combatUI.showFloatingText(
+                        entry.targetId,
+                        `MISS`,
+                        'debuff'
+                    );
+                }
             }
 
             // Handle fireball spell damage
-            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'fireball' && entry.details.spellDamage) {
+            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'fireball') {
+                if (entry.details.isCritical) {
+                    this.combatUI.showFloatingText(
+                        entry.targetId,
+                        `CRITICAL! -${entry.details.spellDamage}`,
+                        'damage'
+                    );
+                } else if (entry.details.isCriticalFail) {
+                    this.combatUI.showFloatingText(
+                        entry.actorId,
+                        `FIZZLE!`,
+                        'debuff'
+                    );
+                } else if (entry.details.saveSuccess) {
+                    this.combatUI.showFloatingText(
+                        entry.targetId,
+                        `SAVE! -${entry.details.spellDamage}`,
+                        'damage'
+                    );
+                } else if (entry.details.spellDamage) {
+                    this.combatUI.showFloatingText(
+                        entry.targetId,
+                        `-${entry.details.spellDamage}`,
+                        'damage'
+                    );
+                }
+            }
+
+            // Handle shield spell
+            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'shield') {
                 this.combatUI.showFloatingText(
-                    entry.targetId,
-                    `-${entry.details.spellDamage}`,
-                    'damage'
+                    entry.actorId,
+                    `+${entry.details.buffValue} AC`,
+                    'buff'
                 );
             }
 
             // Handle healing
-            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'heal' && entry.details.healAmount) {
+            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'heal') {
                 this.combatUI.showFloatingText(
                     entry.targetId,
                     `+${entry.details.healAmount}`,
@@ -181,11 +237,20 @@ class CombatManager {
                 );
             }
 
-            // Handle Ironskin
-            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'ironskin') {
+            // Handle Second Wind (if implemented)
+            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'second_wind') {
                 this.combatUI.showFloatingText(
-                    entry.targetId,
-                    `+DEF ${entry.details.buffValue}`,
+                    entry.actorId,
+                    `+${entry.details.healAmount}`,
+                    'heal'
+                );
+            }
+
+            // Handle Cunning Action (if implemented)
+            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'cunning_action') {
+                this.combatUI.showFloatingText(
+                    entry.actorId,
+                    `EXTRA ACTION`,
                     'buff'
                 );
             }

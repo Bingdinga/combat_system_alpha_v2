@@ -80,18 +80,6 @@ class AttackAction extends Action {
   }
 }
 
-// Defend action
-class DefendAction extends Action {
-  constructor() {
-    super(
-      ActionTypes.DEFEND,
-      'Defend',
-      'Increase defense for a short time',
-      0, // No energy cost
-      'self'
-    );
-  }
-}
 
 // Replace the CastSpellAction class with these specialized spell actions
 class FireballAction extends Action {
@@ -148,7 +136,6 @@ class HealAction extends Action {
 // Action registry
 const ActionRegistry = {
   [ActionTypes.ATTACK]: new AttackAction(),
-  [ActionTypes.DEFEND]: new DefendAction(),
   'fireball': new FireballAction(),
   'ironskin': new IronskinAction(),
   'heal': new HealAction()

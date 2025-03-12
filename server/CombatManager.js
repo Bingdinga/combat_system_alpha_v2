@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const { CharacterClasses } = require('./GameClasses');
 
 class CombatManager {
   constructor(io, roomManager) {
@@ -23,28 +24,64 @@ class CombatManager {
       return;
     }
 
-    // Set up player entities from room players
-    // In server/CombatManager.js, in the initiateCombat method
-    const playerEntities = players.map(player => ({
-      id: player.id,
-      name: player.username,
-      type: 'player',
-      health: 100,
-      maxHealth: 100,
-      energy: 100,
-      maxEnergy: 100,
-      actionPoints: 3.0, // Make sure this is an exact integer
-      maxActionPoints: 3,
-      actionTimer: 0,
-      actionRechargeRate: 5000, // 5 seconds per action point
-      lastActionTime: Date.now(),
-      stats: {
-        attack: 10,
-        defense: 5,
-        magicPower: 8
-      },
-      statusEffects: []
-    }));
+    // Set up player entities from room players with character classes
+    const playerEntities = players.map(player => {
+      // Get class template and create base entity
+      const classTemplate = CharacterClasses[player.characterClass] || {
+        name: 'Adventurer',
+        baseAbilityScores: {
+          strength: 10,
+          dexterity: 10,
+          constitution: 10,
+          intelligence: 10,
+          wisdom: 10,
+          charisma: 10
+        },
+        baseAC: 10,
+        abilities: []
+      };
+
+      // Calculate modifiers
+      const strMod = Math.floor((classTemplate.baseAbilityScores.strength - 10) / 2);
+      const dexMod = Math.floor((classTemplate.baseAbilityScores.dexterity - 10) / 2);
+      const conMod = Math.floor((classTemplate.baseAbilityScores.constitution - 10) / 2);
+      const intMod = Math.floor((classTemplate.baseAbilityScores.intelligence - 10) / 2);
+      const wisMod = Math.floor((classTemplate.baseAbilityScores.wisdom - 10) / 2);
+      const chaMod = Math.floor((classTemplate.baseAbilityScores.charisma - 10) / 2);
+
+      // Set base HP according to class with the new values
+      let baseHP = 50; // Default
+      if (player.characterClass === 'FIGHTER') baseHP = 70;
+      else if (player.characterClass === 'WIZARD') baseHP = 40;
+      else if (player.characterClass === 'ROGUE') baseHP = 50;
+
+      // Add constitution modifier to base HP
+      const maxHealth = baseHP + conMod;
+
+      return {
+        id: player.id,
+        name: player.username,
+        type: 'player',
+        characterClass: player.characterClass,
+        health: maxHealth,
+        maxHealth: maxHealth,
+        energy: 100,
+        maxEnergy: 100,
+        actionPoints: 3.0,
+        maxActionPoints: 3,
+        actionTimer: 0,
+        actionRechargeRate: 5000, // 5 seconds per action point
+        lastActionTime: Date.now(),
+        abilityScores: { ...classTemplate.baseAbilityScores },
+        ac: classTemplate.baseAC,
+        stats: {
+          attack: 10 + strMod,
+          defense: 5 + dexMod,
+          magicPower: 8 + (player.characterClass === 'WIZARD' ? intMod : wisMod)
+        },
+        statusEffects: []
+      };
+    });
 
     // Generate enemies based on number of players
     const enemies = this.generateEnemies(players.length);
@@ -83,9 +120,54 @@ class CombatManager {
     const enemyRechargeMult = 3;
 
     const enemyTypes = [
-      { name: 'Goblin', health: 30, attack: 8, defense: 3, actionRechargeRate: 7000 * enemyRechargeMult },
-      { name: 'Orc', health: 50, attack: 12, defense: 6, actionRechargeRate: 9000 * enemyRechargeMult },
-      { name: 'Troll', health: 70, attack: 15, defense: 8, actionRechargeRate: 13000 * enemyRechargeMult }
+      {
+        name: 'Goblin',
+        health: 30,
+        attack: 8,
+        defense: 3,
+        actionRechargeRate: 7000 * enemyRechargeMult,
+        abilityScores: {
+          strength: 8,
+          dexterity: 14,
+          constitution: 10,
+          intelligence: 10,
+          wisdom: 8,
+          charisma: 8
+        },
+        ac: 13 // Base AC for goblin
+      },
+      {
+        name: 'Orc',
+        health: 50,
+        attack: 12,
+        defense: 6,
+        actionRechargeRate: 9000 * enemyRechargeMult,
+        abilityScores: {
+          strength: 16,
+          dexterity: 12,
+          constitution: 16,
+          intelligence: 7,
+          wisdom: 11,
+          charisma: 10
+        },
+        ac: 13 // Base AC for orc 
+      },
+      {
+        name: 'Troll',
+        health: 70,
+        attack: 15,
+        defense: 8,
+        actionRechargeRate: 13000 * enemyRechargeMult,
+        abilityScores: {
+          strength: 18,
+          dexterity: 13,
+          constitution: 20,
+          intelligence: 7,
+          wisdom: 9,
+          charisma: 7
+        },
+        ac: 15 // Base AC for troll
+      }
     ];
 
     for (let i = 0; i < enemyCount; i++) {
@@ -103,6 +185,8 @@ class CombatManager {
         actionTimer: 0,
         actionRechargeRate: enemyType.actionRechargeRate,
         lastActionTime: Date.now(),
+        abilityScores: enemyType.abilityScores,
+        ac: enemyType.ac,
         stats: {
           attack: enemyType.attack,
           defense: enemyType.defense,
@@ -165,7 +249,6 @@ class CombatManager {
   }
 
   // Process an action (attack, defend, cast spell)
-  // In server/CombatManager.js, modify processAction method
   processAction(combat, actor, actionData) {
     // Find target entity
     const target = combat.entities.find(entity => entity.id === actionData.targetId);
@@ -181,53 +264,79 @@ class CombatManager {
       details: {} // Additional details about the action
     };
 
+    // Declare variables that might be used across different cases
+    let d20Roll, attackModifier, attackRoll, targetAC;
+    let baseDamage, damage, mitigated;
+    let spellCost, spellType, spellAbility, spellAbilityMod, healAbility, healAbilityMod;
+    let spellAttackBonus, spellAttackRoll, saveDC, targetDexMod, targetSaveRoll;
+    let buffValue, buffDuration, buff;
+    let healRoll, healAmount, healedHealth, actualHealAmount;
+    let damageRoll1, damageRoll2, totalDamage, halfDamage;
+    let oldActionPoints, actionPointsGained;
+
     switch (actionData.type) {
       case 'attack':
-        // Calculate damage
-        const baseDamage = actor.stats.attack * (Math.random() * 0.5 + 0.75);
-        const mitigated = target.stats.defense * (Math.random() * 0.3 + 0.2);
-        const damage = Math.max(1, Math.floor(baseDamage - mitigated));
+        // D&D style attack roll (d20 + modifier against AC)
+        d20Roll = Math.floor(Math.random() * 20) + 1; // 1-20
+        attackModifier = actor.abilityScores ?
+          Math.floor((actor.abilityScores.strength - 10) / 2) :
+          Math.floor(actor.stats.attack / 3);
 
-        // Apply damage
-        target.health = Math.max(0, target.health - damage);
+        attackRoll = d20Roll + attackModifier;
+        targetAC = target.ac || 10 + Math.floor(target.stats.defense / 2);
 
-        // Store details
         result.details = {
-          damage: damage,
-          targetHealthBefore: target.health + damage,
-          targetHealthAfter: target.health,
+          d20Roll: d20Roll,
+          attackModifier: attackModifier,
+          totalAttackRoll: attackRoll,
+          targetAC: targetAC,
+          attackType: 'melee',
           actorType: actor.type
         };
 
-        result.message = `${actor.name} attacked ${target.name} for ${damage} damage!`;
+        // Critical hit on natural 20
+        if (d20Roll === 20) {
+          baseDamage = actor.stats.attack * (Math.random() * 0.3 + 0.85);
+          damage = Math.floor(baseDamage * 2); // Double damage on crit
+
+          target.health = Math.max(0, target.health - damage);
+
+          result.details.damage = damage;
+          result.details.targetHealthBefore = target.health + damage;
+          result.details.targetHealthAfter = target.health;
+          result.details.isCritical = true;
+
+          result.message = `${actor.name} rolled a natural 20! Critical hit on ${target.name} for ${damage} damage!`;
+        }
+        // Critical failure on natural 1
+        else if (d20Roll === 1) {
+          result.details.isCriticalFail = true;
+          result.message = `${actor.name} rolled a natural 1! Critical miss against ${target.name}!`;
+        }
+        // Normal hit/miss logic
+        else if (attackRoll >= targetAC) {
+          // Hit - calculate damage
+          baseDamage = actor.stats.attack * (Math.random() * 0.5 + 0.75);
+          damage = Math.floor(baseDamage);
+
+          target.health = Math.max(0, target.health - damage);
+
+          result.details.damage = damage;
+          result.details.targetHealthBefore = target.health + damage;
+          result.details.targetHealthAfter = target.health;
+          result.details.isHit = true;
+
+          result.message = `${actor.name} rolled ${attackRoll} vs AC ${targetAC} and hit ${target.name} for ${damage} damage!`;
+        } else {
+          // Miss
+          result.details.isHit = false;
+          result.message = `${actor.name} rolled ${attackRoll} vs AC ${targetAC} and missed ${target.name}!`;
+        }
         break;
 
-      case 'defend':
-        // Apply defense buff
-        const defenseBuff = {
-          id: uuidv4(),
-          type: 'defenseBuff',
-          value: Math.floor(actor.stats.defense * 0.5),
-          duration: 2,
-          applied: Date.now()
-        };
-
-        actor.statusEffects.push(defenseBuff);
-
-        // Store details
-        result.details = {
-          buffValue: defenseBuff.value,
-          buffDuration: defenseBuff.duration,
-          actorType: actor.type
-        };
-
-        result.message = `${actor.name} takes a defensive stance, increasing defense!`;
-        break;
-
-      // In the processAction method, replace the 'cast' case with:
       case 'cast':
         // Check energy cost
-        const spellCost = 20;
+        spellCost = 20;
 
         if (actor.energy < spellCost) {
           result.message = `${actor.name} doesn't have enough energy to cast the spell!`;
@@ -235,73 +344,158 @@ class CombatManager {
         }
 
         // Get spell type from action data
-        const spellType = actionData.spellType || 'fireball'; // Default to fireball
+        spellType = actionData.spellType || 'fireball'; // Default to fireball
 
         switch (spellType) {
           case 'fireball':
-            // Calculate spell damage
-            const spellDamage = Math.floor(actor.stats.magicPower * (Math.random() * 0.6 + 0.9));
+            // DnD style attack roll for spells - use Intelligence for wizards, Wisdom otherwise
+            spellAbility = actor.characterClass === 'WIZARD' ? 'intelligence' : 'wisdom';
+            spellAbilityMod = Math.floor((actor.abilityScores[spellAbility] - 10) / 2);
 
-            // Apply damage and cost
-            target.health = Math.max(0, target.health - spellDamage);
-            actor.energy -= spellCost;
+            // Spell attack roll
+            d20Roll = Math.floor(Math.random() * 20) + 1; // 1-20
+            spellAttackBonus = spellAbilityMod;
+            spellAttackRoll = d20Roll + spellAttackBonus;
 
-            // Store details
+            // Target's save DC
+            saveDC = 8 + spellAbilityMod + 2; // 8 + ability modifier + proficiency bonus (2)
+
+            // Store core details for all outcomes
             result.details = {
               spellType: 'fireball',
-              spellDamage: spellDamage,
+              d20Roll: d20Roll,
+              spellAttackBonus: spellAttackBonus,
+              totalSpellRoll: spellAttackRoll,
               energyCost: spellCost,
-              targetHealthBefore: target.health + spellDamage,
-              targetHealthAfter: target.health,
-              actorEnergyBefore: actor.energy + spellCost,
-              actorEnergyAfter: actor.energy,
+              actorEnergyBefore: actor.energy,
               actorType: actor.type
             };
 
-            result.message = `${actor.name} cast Fireball on ${target.name} for ${spellDamage} damage!`;
+            // Critical hit
+            if (d20Roll === 20) {
+              // Calculate spell damage (2d6 for fireball)
+              damageRoll1 = Math.floor(Math.random() * 6) + 1;
+              damageRoll2 = Math.floor(Math.random() * 6) + 1;
+              damage = damageRoll1 + damageRoll2 + spellAbilityMod;
+
+              // Double damage on crit
+              totalDamage = damage * 2;
+
+              // Apply damage
+              target.health = Math.max(0, target.health - totalDamage);
+              actor.energy -= spellCost;
+
+              // Update details
+              result.details.spellDamage = totalDamage;
+              result.details.isCritical = true;
+              result.details.targetHealthBefore = target.health + totalDamage;
+              result.details.targetHealthAfter = target.health;
+              result.details.actorEnergyAfter = actor.energy;
+
+              result.message = `${actor.name} rolled a natural 20! Critical Fireball hits ${target.name} for ${totalDamage} fire damage!`;
+            }
+            // Critical failure
+            else if (d20Roll === 1) {
+              actor.energy -= spellCost;
+
+              result.details.isCriticalFail = true;
+              result.details.actorEnergyAfter = actor.energy;
+
+              result.message = `${actor.name} rolled a natural 1! The Fireball fizzles out harmlessly!`;
+            }
+            // Normal hit/miss
+            else {
+              // We use Dexterity saving throw against spellcaster's DC
+              targetDexMod = Math.floor((target.abilityScores.dexterity - 10) / 2);
+              targetSaveRoll = Math.floor(Math.random() * 20) + 1 + targetDexMod;
+
+              // Calculate base damage
+              damageRoll1 = Math.floor(Math.random() * 6) + 1;
+              damageRoll2 = Math.floor(Math.random() * 6) + 1;
+              baseDamage = damageRoll1 + damageRoll2 + spellAbilityMod;
+
+              actor.energy -= spellCost;
+              result.details.actorEnergyAfter = actor.energy;
+              result.details.saveDC = saveDC;
+              result.details.targetSaveRoll = targetSaveRoll;
+
+              // Failed save takes full damage
+              if (targetSaveRoll < saveDC) {
+                target.health = Math.max(0, target.health - baseDamage);
+
+                result.details.spellDamage = baseDamage;
+                result.details.saveSuccess = false;
+                result.details.targetHealthBefore = target.health + baseDamage;
+                result.details.targetHealthAfter = target.health;
+
+                result.message = `${actor.name}'s Fireball hits ${target.name} (DC ${saveDC} vs ${targetSaveRoll}). ${target.name} takes ${baseDamage} fire damage!`;
+              }
+              // Successful save takes half damage
+              else {
+                halfDamage = Math.floor(baseDamage / 2);
+                target.health = Math.max(0, target.health - halfDamage);
+
+                result.details.spellDamage = halfDamage;
+                result.details.saveSuccess = true;
+                result.details.targetHealthBefore = target.health + halfDamage;
+                result.details.targetHealthAfter = target.health;
+
+                result.message = `${actor.name} casts Fireball, but ${target.name} partially dodges it (DC ${saveDC} vs ${targetSaveRoll}). ${target.name} takes ${halfDamage} fire damage!`;
+              }
+            }
             break;
 
-          case 'ironskin':
-            // Create defense buff
-            const defenseBuff = {
+          case 'shield':
+            // Shield spell - boost AC temporarily (like D&D)
+            const shieldACBoost = 5;
+            const shieldDuration = 3; // 3 turns
+
+            // Create AC buff effect
+            buff = {
               id: uuidv4(),
-              type: 'ironskinBuff',
-              value: 3, // Flat defense increase of 3
-              duration: 3, // Lasts for 3 turns
+              type: 'acBuff',
+              value: shieldACBoost,
+              duration: shieldDuration,
               applied: Date.now()
             };
 
-            // Apply buff to target
-            target.statusEffects.push(defenseBuff);
+            // Apply buff to target (self)
+            actor.statusEffects.push(buff);
             actor.energy -= spellCost;
 
             // Store details
             result.details = {
-              spellType: 'ironskin',
-              buffValue: defenseBuff.value,
-              buffDuration: defenseBuff.duration,
+              spellType: 'shield',
+              buffValue: shieldACBoost,
+              buffDuration: shieldDuration,
               energyCost: spellCost,
               actorEnergyBefore: actor.energy + spellCost,
               actorEnergyAfter: actor.energy,
               actorType: actor.type
             };
 
-            result.message = `${actor.name} cast Ironskin on ${target.name}, increasing defense by ${defenseBuff.value}!`;
+            result.message = `${actor.name} casts Shield, increasing AC by ${shieldACBoost} for ${shieldDuration} rounds!`;
             break;
 
           case 'heal':
-            // Calculate heal amount (slightly more than fireball damage)
-            const healAmount = Math.floor(actor.stats.magicPower * (Math.random() * 0.7 + 1.0));
+            // Healing Word spell - 1d4 + ability modifier
+            healAbility = 'wisdom'; // Use Wisdom for healing
+            healAbilityMod = Math.floor((actor.abilityScores[healAbility] - 10) / 2);
+
+            healRoll = Math.floor(Math.random() * 4) + 1; // 1d4
+            healAmount = healRoll + healAbilityMod;
 
             // Apply healing (capped at max health)
-            const healedHealth = Math.min(target.maxHealth, target.health + healAmount);
-            const actualHealAmount = healedHealth - target.health;
+            healedHealth = Math.min(target.maxHealth, target.health + healAmount);
+            actualHealAmount = healedHealth - target.health;
             target.health = healedHealth;
             actor.energy -= spellCost;
 
             // Store details
             result.details = {
               spellType: 'heal',
+              healRoll: healRoll,
+              healModifier: healAbilityMod,
               healAmount: actualHealAmount,
               energyCost: spellCost,
               targetHealthBefore: target.health - actualHealAmount,
@@ -311,7 +505,66 @@ class CombatManager {
               actorType: actor.type
             };
 
-            result.message = `${actor.name} cast Heal on ${target.name}, restoring ${actualHealAmount} health!`;
+            result.message = `${actor.name} casts Healing Word on ${target.name}, restoring ${actualHealAmount} health!`;
+            break;
+
+          case 'second_wind':
+            // Fighter's Second Wind: Heal 1d10 + level
+            if (actor.characterClass !== 'FIGHTER') {
+              return null; // Only fighters can use Second Wind
+            }
+
+            healRoll = Math.floor(Math.random() * 10) + 1; // 1d10
+            const level = 1; // Starting level
+            healAmount = healRoll + level;
+
+            // Apply healing (capped at max health)
+            healedHealth = Math.min(actor.maxHealth, actor.health + healAmount);
+            actualHealAmount = healedHealth - actor.health;
+            actor.health = healedHealth;
+            actor.energy -= spellCost;
+
+            // Store details
+            result.details = {
+              spellType: 'second_wind',
+              healRoll: healRoll,
+              healAmount: actualHealAmount,
+              energyCost: spellCost,
+              actorHealthBefore: actor.health - actualHealAmount,
+              actorHealthAfter: actor.health,
+              actorEnergyBefore: actor.energy + spellCost,
+              actorEnergyAfter: actor.energy,
+              actorType: actor.type
+            };
+
+            result.message = `${actor.name} uses Second Wind, recovering ${actualHealAmount} health!`;
+            break;
+
+          case 'cunning_action':
+            // Rogue's Cunning Action: Get an extra action point
+            if (actor.characterClass !== 'ROGUE') {
+              return null; // Only rogues can use Cunning Action
+            }
+
+            // Grant an extra action point (capped at max)
+            oldActionPoints = actor.actionPoints;
+            actor.actionPoints = Math.min(actor.maxActionPoints, actor.actionPoints + 1);
+            actionPointsGained = actor.actionPoints - oldActionPoints;
+            actor.energy -= spellCost;
+
+            // Store details
+            result.details = {
+              spellType: 'cunning_action',
+              actionPointsBefore: oldActionPoints,
+              actionPointsAfter: actor.actionPoints,
+              actionPointsGained: actionPointsGained,
+              energyCost: spellCost,
+              actorEnergyBefore: actor.energy + spellCost,
+              actorEnergyAfter: actor.energy,
+              actorType: actor.type
+            };
+
+            result.message = `${actor.name} uses Cunning Action, gaining an extra action!`;
             break;
 
           default:

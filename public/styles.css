@@ -652,3 +652,170 @@ input[type="text"]:focus {
     font-size: 0.8rem;
     color: #aaa;
 }
+
+/* Character Creation Screen Styles */
+.char-creation-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.class-selection,
+.character-preview {
+    flex: 1;
+    min-width: 300px;
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.class-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.class-option {
+    background-color: #333;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.class-option:hover {
+    background-color: #444;
+    transform: translateY(-2px);
+}
+
+.class-option.selected {
+    background-color: #3a2953;
+    border: 2px solid #bb86fc;
+}
+
+.class-option h4 {
+    color: #bb86fc;
+    margin-bottom: 0.5rem;
+}
+
+.stat-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    list-style: none;
+}
+
+.stat-preview li {
+    background-color: #222;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+#ability-scores-preview {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.ability-score {
+    background-color: #333;
+    padding: 0.5rem;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.ability-name {
+    font-weight: bold;
+    color: #bb86fc;
+}
+
+.ability-mod {
+    color: #03dac6;
+}
+
+.character-details {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #444;
+}
+
+.buttons-container {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.entity-class {
+    font-size: 0.75rem;
+    color: #bb86fc;
+    margin-bottom: 0.5rem;
+    background-color: #333;
+    display: inline-block;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+}
+
+.player-class {
+    font-size: 0.75rem;
+    color: #bb86fc;
+    background-color: #333;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}
+
+.entity-stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.2rem;
+}
+
+.entity-hp,
+.entity-ac,
+.entity-energy {
+    display: inline-block;
+    font-size: 0.9rem;
+}
+
+.entity-hp {
+    color: #ffffff;
+    /* Red for health */
+}
+
+.entity-ac {
+    color: #ffffff;
+    /* Teal for armor class */
+}
+
+.entity-energy {
+    color: #ffffff;
+}
+
+/* Add these CSS rules to public/styles.css */
+.entity-name-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.entity-name {
+    font-weight: bold;
+    color: #ffffff;
+    font-size: 1.3rem;
+}
+
+.entity-class {
+    font-size: 0.9rem;
+    color: #bb86fc;
+    background-color: #333;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}

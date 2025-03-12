@@ -18,6 +18,12 @@ const leaveRoomBtn = document.getElementById('leave-room-btn');
 const roomIdDisplay = document.getElementById('room-id-display');
 const playerList = document.getElementById('player-list');
 
+const characterCreationScreen = document.getElementById('character-creation');
+const backToLoginBtn = document.getElementById('back-to-login-btn');
+const createCharacterBtn = document.getElementById('create-character-btn');
+const classOptions = document.querySelectorAll('.class-option');
+let selectedClass = null;
+
 // Initialize application
 function initialize() {
     // Create combat manager
@@ -62,6 +68,132 @@ function setupEventListeners() {
         socketManager.leaveRoom();
         showLoginForm();
     });
+
+    backToLoginBtn.addEventListener('click', () => {
+        showLoginForm();
+    });
+
+    // Class selection
+    classOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            // Remove selected class from all options
+            classOptions.forEach(opt => opt.classList.remove('selected'));
+
+            // Add selected class to clicked option
+            option.classList.add('selected');
+
+            // Store selected class
+            selectedClass = option.getAttribute('data-class');
+
+            // Update character preview
+            updateCharacterPreview(selectedClass);
+
+            // Enable create button
+            createCharacterBtn.disabled = false;
+        });
+    });
+
+    // Create character button
+    createCharacterBtn.addEventListener('click', () => {
+        if (!selectedClass) return;
+
+        const username = usernameInput.value.trim();
+        const roomId = roomIdInput.value.trim();
+
+        if (!username || !roomId) {
+            alert('Please enter a username and room ID');
+            return;
+        }
+
+        // Join room with character class
+        socketManager.joinRoom(username, roomId, selectedClass);
+    });
+
+    // Modify the Join Room button to show character creation instead
+    joinBtn.addEventListener('click', () => {
+        const username = usernameInput.value.trim();
+        const roomId = roomIdInput.value.trim();
+
+        if (!username || !roomId) {
+            alert('Please enter a username and room ID');
+            return;
+        }
+
+        // Show character creation instead of joining immediately
+        showCharacterCreation();
+    });
+}
+
+function showCharacterCreation() {
+    loginForm.classList.add('hidden');
+    characterCreationScreen.classList.remove('hidden');
+    roomInfo.classList.add('hidden');
+
+    // Reset selection
+    classOptions.forEach(opt => opt.classList.remove('selected'));
+    selectedClass = null;
+    createCharacterBtn.disabled = true;
+
+    // Reset preview
+    updateCharacterPreview(null);
+}
+
+function updateCharacterPreview(className) {
+    const abilityScoresPreview = document.getElementById('ability-scores-preview');
+    const previewAC = document.getElementById('preview-ac');
+    const previewHP = document.getElementById('preview-hp');
+
+    if (!className) {
+        // Default values
+        const abilities = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+        abilities.forEach(ability => {
+            const abilityElement = abilityScoresPreview.querySelector(`.ability-score:nth-child(${abilities.indexOf(ability) + 1})`);
+            const valueElement = abilityElement.querySelector('.ability-value');
+            const modElement = abilityElement.querySelector('.ability-mod');
+
+            valueElement.textContent = '10';
+            modElement.textContent = '(+0)';
+        });
+
+        previewAC.textContent = '10';
+        previewHP.textContent = '50'; // Default HP
+        return;
+    }
+
+    // Get class template
+    const classTemplate = CharacterClasses[className];
+    if (!classTemplate) return;
+
+    // Update ability scores
+    for (const [ability, value] of Object.entries(classTemplate.baseAbilityScores)) {
+        const abilityShort = ability.substring(0, 3).toUpperCase();
+        const abilityIndex = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].indexOf(abilityShort);
+
+        if (abilityIndex !== -1) {
+            const abilityElement = abilityScoresPreview.querySelector(`.ability-score:nth-child(${abilityIndex + 1})`);
+            const valueElement = abilityElement.querySelector('.ability-value');
+            const modElement = abilityElement.querySelector('.ability-mod');
+
+            const modifier = Math.floor((value - 10) / 2);
+            valueElement.textContent = value;
+            modElement.textContent = `(${modifier >= 0 ? '+' : ''}${modifier})`;
+        }
+    }
+
+    // Update AC and HP
+    previewAC.textContent = classTemplate.baseAC;
+
+    // Update to use the new health values
+    let baseHP = 50; // Default
+    if (className === 'FIGHTER') baseHP = 70;
+    else if (className === 'WIZARD') baseHP = 40;
+    else if (className === 'ROGUE') baseHP = 50;
+
+    // Add constitution modifier to base HP
+    const conModifier = Math.floor((classTemplate.baseAbilityScores.constitution - 10) / 2);
+    const hp = baseHP + conModifier;
+
+    previewHP.textContent = hp;
 }
 
 // Setup Socket.io event listeners
@@ -95,6 +227,7 @@ function setupSocketListeners() {
 // Show login form
 function showLoginForm() {
     loginForm.classList.remove('hidden');
+    characterCreationScreen.classList.add('hidden');
     roomInfo.classList.add('hidden');
 
     // Reset input fields
@@ -133,7 +266,20 @@ function addPlayerToList(player) {
         playerItem.classList.add('local-player');
     }
 
-    playerItem.textContent = `${player.username}${isLocalPlayer ? ' (You)' : ''}`;
+    // Create player info with class if available
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'player-name';
+    nameSpan.textContent = `${player.username}${isLocalPlayer ? ' (You)' : ''}`;
+
+    playerItem.appendChild(nameSpan);
+
+    if (player.characterClass) {
+        const classSpan = document.createElement('span');
+        classSpan.className = 'player-class';
+        classSpan.textContent = player.characterClass.charAt(0) + player.characterClass.slice(1).toLowerCase();
+        playerItem.appendChild(classSpan);
+    }
+
     playerList.appendChild(playerItem);
 }
 

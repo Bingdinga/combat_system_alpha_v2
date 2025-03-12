@@ -15,12 +15,49 @@ class Entity {
         this.actionTimer = data.actionTimer || 0;
         this.actionRechargeRate = data.actionRechargeRate || 5000; // milliseconds per action point
         this.lastActionTime = data.lastActionTime || Date.now();
+
+        // New D&D ability scores
+        this.abilityScores = data.abilityScores || {
+            strength: 10,     // Physical power, melee attacks
+            dexterity: 10,    // Agility, ranged attacks, AC
+            constitution: 10, // Health, hit points
+            intelligence: 10, // Learning, arcane magic
+            wisdom: 10,       // Awareness, divine magic
+            charisma: 10      // Force of personality
+        };
+
+        // AC calculation based on dexterity
+        this.ac = data.ac || 10 + this.getAbilityModifier('dexterity');
+
+        // Legacy stats still used in existing code
         this.stats = data.stats || {
             attack: 10,
             defense: 5,
             magicPower: 8
         };
         this.statusEffects = data.statusEffects || [];
+    }
+
+    // Calculate ability modifier from score
+    getAbilityModifier(abilityName) {
+        const score = this.abilityScores[abilityName];
+        return Math.floor((score - 10) / 2);
+    }
+
+    // Get current AC including effects
+    getAC() {
+        let baseAC = this.ac;
+
+        // Apply AC bonuses from status effects
+        for (const effect of this.statusEffects) {
+            if (effect.type === 'acBuff') {
+                baseAC += effect.value;
+            } else if (effect.type === 'acDebuff') {
+                baseAC -= effect.value;
+            }
+        }
+
+        return baseAC;
     }
 
     // Check if entity is alive
@@ -56,6 +93,17 @@ class Entity {
         this.maxActionPoints = data.maxActionPoints;
         this.actionTimer = data.actionTimer;
         this.lastActionTime = data.lastActionTime;
+
+        // Update ability scores if present
+        if (data.abilityScores) {
+            this.abilityScores = data.abilityScores;
+        }
+
+        // Update AC if present
+        if (data.ac !== undefined) {
+            this.ac = data.ac;
+        }
+
         this.stats = data.stats;
         this.statusEffects = data.statusEffects;
     }
@@ -116,11 +164,75 @@ class Entity {
     }
 }
 
-// Player Entity class
+// Add this near the top of the file, after the Entity class but before the PlayerEntity class
+
+// Character class definitions (to be expanded)
+const CharacterClasses = {
+    FIGHTER: {
+        name: 'Fighter',
+        description: 'Masters of martial combat, skilled with a variety of weapons and armor.',
+        baseAbilityScores: {
+            strength: 15,
+            dexterity: 12,
+            constitution: 14,
+            intelligence: 8,
+            wisdom: 10,
+            charisma: 10
+        },
+        baseAC: 15, // Chain mail
+        abilities: ['Second Wind', 'Action Surge']
+    },
+    WIZARD: {
+        name: 'Wizard',
+        description: 'Scholarly magic-users capable of manipulating the structures of reality.',
+        baseAbilityScores: {
+            strength: 8,
+            dexterity: 14,
+            constitution: 12,
+            intelligence: 15,
+            wisdom: 10,
+            charisma: 10
+        },
+        baseAC: 12, // Mage armor
+        abilities: ['Arcane Recovery', 'Spell Mastery']
+    },
+    ROGUE: {
+        name: 'Rogue',
+        description: 'Skilled tricksters who use stealth and cunning to overcome obstacles.',
+        baseAbilityScores: {
+            strength: 10,
+            dexterity: 15,
+            constitution: 12,
+            intelligence: 13,
+            wisdom: 10,
+            charisma: 12
+        },
+        baseAC: 14, // Leather armor + high dex
+        abilities: ['Sneak Attack', 'Cunning Action']
+    }
+};
+
+// Add this to the PlayerEntity class
 class PlayerEntity extends Entity {
     constructor(data) {
         super(data);
         this.isLocalPlayer = data.isLocalPlayer || false;
+        this.characterClass = data.characterClass || null;
+    }
+
+    // Method to set character class
+    setCharacterClass(className) {
+        const classTemplate = CharacterClasses[className];
+        if (!classTemplate) return false;
+
+        this.characterClass = className;
+
+        // Apply class base stats (in a real implementation, you'd want to
+        // account for existing modifications rather than overwriting)
+        this.abilityScores = { ...classTemplate.baseAbilityScores };
+        this.ac = classTemplate.baseAC;
+
+        return true;
     }
 }
 
