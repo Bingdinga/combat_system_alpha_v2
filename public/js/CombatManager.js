@@ -128,43 +128,60 @@ class CombatManager {
     }
 
     // Update combat state from server
-    // In CombatManager.js, updateCombatState method
+    // In CombatManager.js, replace or modify the updateCombatState method
     updateCombatState(combatState) {
         if (!this.active) return;
-
-        // Update log with new entries
-        const newLogEntries = combatState.log.slice(this.log.length);
-        this.log = combatState.log;
 
         // Update entities with server's authoritative values
         combatState.entities.forEach(entityData => {
             const entity = this.entities.find(e => e.id === entityData.id);
             if (entity) {
-                // Store previous action points for logging
+                // Store previous values before update
+                const prevHealth = entity.health;
                 const prevActionPoints = entity.actionPoints;
 
                 // Update the entity with server data
                 entity.update(entityData);
 
-                // Log significant action point changes for debugging
-                if (Math.abs(prevActionPoints - entity.actionPoints) > 0.1) {
-                    // console.log(`Action points updated from server: ${prevActionPoints} → ${entity.actionPoints}`);
-                }
-            }
-        });
-
-        // Update UI
-        combatState.entities.forEach(entityData => {
-            const entity = this.entities.find(e => e.id === entityData.id);
-            if (entity) {
+                // Update UI
                 this.combatUI.updateEntityElement(entity);
             }
         });
 
-        // Update combat log if new entries
-        if (newLogEntries.length > 0) {
-            this.combatUI.renderCombatLog(newLogEntries);
-        }
+        // Process new log entries for floating text
+        const newLogEntries = combatState.log.slice(this.log.length);
+        this.log = combatState.log;
+
+        newLogEntries.forEach(entry => {
+            // Handle attack and spell damage
+            if (entry.action === 'attack' || entry.action === 'cast') {
+                if (entry.details && entry.details.damage) {
+                    this.combatUI.showFloatingText(
+                        entry.targetId,
+                        `-${entry.details.damage}`,
+                        'damage'
+                    );
+                }
+            }
+
+            // Handle defeat messages
+            if (entry.type === 'defeat') {
+                this.combatUI.showFloatingText(
+                    entry.entityId,
+                    'Defeated!',
+                    'damage'
+                );
+            }
+
+            // Handle defense buff
+            if (entry.action === 'defend' && entry.details && entry.details.buffValue) {
+                this.combatUI.showFloatingText(
+                    entry.actorId,
+                    `+DEF ${entry.details.buffValue}`,
+                    'buff'
+                );
+            }
+        });
 
         // Update action points UI with server's values
         this.combatUI.updateActionPoints();

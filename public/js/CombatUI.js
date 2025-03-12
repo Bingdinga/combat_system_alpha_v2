@@ -8,7 +8,8 @@ class CombatUI {
         this.combatScreen = document.getElementById('combat-screen');
         this.playerEntitiesContainer = document.getElementById('player-entities');
         this.enemyEntitiesContainer = document.getElementById('enemy-entities');
-        this.combatLogContainer = document.getElementById('combat-log');
+
+
         this.actionPointsCount = document.getElementById('action-points-count');
         this.maxActionPoints = document.getElementById('max-action-points');
         this.actionPointsBar = document.getElementById('action-points-bar');
@@ -26,8 +27,6 @@ class CombatUI {
         // Selection callback
         this.selectionCallback = null;
 
-        this.autoScrollToggle = document.getElementById('auto-scroll-toggle');
-
         // Setup event listeners
         this.setupEventListeners();
     }
@@ -40,13 +39,9 @@ class CombatUI {
         // Clear containers
         this.playerEntitiesContainer.innerHTML = '';
         this.enemyEntitiesContainer.innerHTML = '';
-        this.combatLogContainer.innerHTML = '';
 
         // Render entities
         this.renderEntities(combatState.entities);
-
-        // Render initial combat log
-        this.renderCombatLog(combatState.log);
 
         // Update action points
         this.updateActionPoints();
@@ -87,6 +82,30 @@ class CombatUI {
             const enemyElement = this.createEntityElement(enemy);
             this.enemyEntitiesContainer.appendChild(enemyElement);
         });
+    }
+
+    // Add this method to the CombatUI class in CombatUI.js
+    showFloatingText(entityId, text, type = 'damage') {
+        const entityEl = document.querySelector(`.entity-card[data-entity-id="${entityId}"]`);
+        if (!entityEl) return;
+
+        const floatingText = document.createElement('div');
+        floatingText.className = `floating-text ${type}`;
+        floatingText.textContent = text;
+
+        // Position the text at a random horizontal position over the entity
+        const randomOffsetX = Math.floor(Math.random() * 140) - 70; // -70 to +70px
+        floatingText.style.left = `calc(50% + ${randomOffsetX}px)`;
+        floatingText.style.top = '40%';
+
+        entityEl.appendChild(floatingText);
+
+        // Remove the element after animation completes
+        setTimeout(() => {
+            if (floatingText.parentNode === entityEl) {
+                entityEl.removeChild(floatingText);
+            }
+        }, 2100); // slightly longer than animation duration
     }
 
     // Create an entity element
@@ -272,66 +291,6 @@ class CombatUI {
             entityEl.classList.add('dead');
         } else {
             entityEl.classList.remove('dead');
-        }
-    }
-
-    // In CombatUI.js, renderCombatLog method
-    renderCombatLog(logEntries) {
-        // Check if there are any new entries to add
-        if (logEntries.length === 0) return;
-
-        // Get the current number of log entries in the UI
-        const currentEntriesCount = this.combatLogContainer.children.length;
-
-        // Only add new entries (avoid duplicates)
-        const newEntries = logEntries.slice(currentEntriesCount);
-        if (newEntries.length === 0) return;
-
-        // Get timestamp formatter
-        const formatTime = (timestamp) => {
-            const date = new Date(timestamp);
-            return `${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
-        };
-
-        // Add new log entries
-        newEntries.forEach(entry => {
-            const logEntryEl = document.createElement('div');
-            logEntryEl.className = 'log-entry';
-
-            // Add specific classes based on entry type
-            if (entry.actorType === 'player') {
-                logEntryEl.classList.add('player-action');
-            } else if (entry.actorType === 'enemy') {
-                logEntryEl.classList.add('enemy-action');
-            }
-
-            if (entry.type === 'defeat') {
-                logEntryEl.classList.add('defeat-message');
-            }
-
-            // Format log entry text
-            let logText = '';
-            if (entry.actor && entry.target) {
-                // Action entry
-                logText = `${entry.actor} ${entry.action} ${entry.target}: ${entry.message}`;
-            } else {
-                // System message
-                logText = entry.message;
-            }
-
-            logEntryEl.innerHTML = `
-        <span class="log-time">[${formatTime(entry.time)}]</span> 
-        ${logText}
-      `;
-
-            this.combatLogContainer.appendChild(logEntryEl);
-        });
-
-        // Only scroll to bottom if auto-scroll is enabled
-        if (this.autoScrollToggle && this.autoScrollToggle.checked) {
-            setTimeout(() => {
-                this.combatLogContainer.scrollTop = this.combatLogContainer.scrollHeight;
-            }, 10);
         }
     }
 
