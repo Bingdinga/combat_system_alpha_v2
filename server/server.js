@@ -6,6 +6,9 @@ const socketIo = require('socket.io');
 // Import managers
 const RoomManager = require('./RoomManager');
 const CombatManager = require('./CombatManager');
+const { CharacterClasses } = require('./GameClasses');
+const { getAllAbilities, getAbilitiesForClass } = require('./Abilities');
+
 
 // Initialize Express app and HTTP server
 const app = express();
@@ -13,6 +16,21 @@ const server = http.createServer(app);
 
 // Set up static file serving from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
+
+app.get('/api/classes', (req, res) => {
+  res.json(CharacterClasses);
+});
+
+// API route to get all abilities
+app.get('/api/abilities', (req, res) => {
+  res.json(getAllAbilities());
+});
+
+// API route to get abilities for a specific class
+app.get('/api/abilities/:className', (req, res) => {
+  const className = req.params.className.toUpperCase();
+  res.json(getAbilitiesForClass(className));
+});
 
 // Initialize Socket.io with CORS settings
 const io = socketIo(server, {
@@ -25,6 +43,7 @@ const io = socketIo(server, {
 // Initialize managers
 const roomManager = new RoomManager(io);
 const combatManager = new CombatManager(io, roomManager);
+
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
@@ -61,6 +80,8 @@ io.on('connection', (socket) => {
     roomManager.handleDisconnect(socket.id);
   });
 });
+
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;

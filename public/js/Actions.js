@@ -1,20 +1,21 @@
-// Actions.js - Combat action definitions and handlers
+// public/js/Actions.js
 
-// Action Types
+// Action types
 const ActionTypes = {
   ATTACK: 'attack',
-  DEFEND: 'defend',
-  CAST: 'cast'
+  CAST: 'cast',
+  PASSIVE: 'passive'
 };
 
 // Action class
 class Action {
-  constructor(type, name, description, energyCost, targetType) {
-    this.type = type;
-    this.name = name;
-    this.description = description;
-    this.energyCost = energyCost || 0;
-    this.targetType = targetType; // 'enemy', 'ally', 'self', 'all'
+  constructor(data) {
+    this.id = data.id;
+    this.name = data.name;
+    this.description = data.description;
+    this.energyCost = data.energyCost || 0;
+    this.targetType = data.targetType; // 'enemy', 'ally', 'self', 'all'
+    this.type = data.type || ActionTypes.ATTACK;
   }
 
   // Check if action is valid for the given actor
@@ -24,8 +25,17 @@ class Action {
       return false;
     }
 
-    // Check if actor has enough action points
-    if (actor.actionPoints < 1) {
+    // Check if actor has enough action points for non-passive abilities
+    if (actor.actionPoints < 1 && this.type !== ActionTypes.PASSIVE) {
+      return false;
+    }
+
+    // Class-specific checks
+    if (this.id === 'secondWind' && actor.characterClass !== 'FIGHTER') {
+      return false;
+    }
+    
+    if ((this.id === 'sneakAttack' || this.id === 'evasion') && actor.characterClass !== 'ROGUE') {
       return false;
     }
 
@@ -67,118 +77,94 @@ class Action {
   }
 }
 
-// Attack action
-class AttackAction extends Action {
-  constructor() {
-    super(
-      ActionTypes.ATTACK,
-      'Attack',
-      'Deal physical damage to an enemy',
-      0, // No energy cost
-      'enemy'
-    );
-  }
-}
+// Actions registry - populated from server
+let ActionRegistry = {};
 
-
-// Replace the CastSpellAction class with these specialized spell actions
-class FireballAction extends Action {
-  constructor() {
-    super(
-      ActionTypes.CAST,
-      'Fireball',
-      'Cast a damaging fire spell on an enemy',
-      20, // Energy cost
-      'enemy'
-    );
-    this.spellType = 'fireball';
-  }
-
-  isValid(actor) {
-    return super.isValid(actor) && actor.energy >= this.energyCost;
-  }
-}
-
-class IronskinAction extends Action {
-  constructor() {
-    super(
-      ActionTypes.CAST,
-      'Ironskin',
-      'Cast a protective spell that increases defense by 3',
-      20, // Energy cost
-      'ally'
-    );
-    this.spellType = 'ironskin';
-  }
-
-  isValid(actor) {
-    return super.isValid(actor) && actor.energy >= this.energyCost;
-  }
-}
-
-class HealAction extends Action {
-  constructor() {
-    super(
-      ActionTypes.CAST,
-      'Heal',
-      'Cast a healing spell that restores health',
-      20, // Energy cost
-      'ally'
-    );
-    this.spellType = 'heal';
-  }
-
-  isValid(actor) {
-    return super.isValid(actor) && actor.energy >= this.energyCost;
-  }
-}
-
-// Action registry
-const ActionRegistry = {
-  [ActionTypes.ATTACK]: new AttackAction(),
-  'fireball': new FireballAction(),
-  'ironskin': new IronskinAction(),
-  'heal': new HealAction()
-};
-
-// Add this after ActionRegistry
+// Status effect registry
 const StatusEffectRegistry = {
   'defenseBuff': {
     displayName: 'Defense',
     affectedStat: 'defense',
     cssClass: 'buff'
   },
-  'ironskinBuff': {
-    displayName: 'Ironskin',
-    affectedStat: 'defense',
-    cssClass: 'ironskin'
+  'acBuff': {
+    displayName: 'Shield',
+    affectedStat: 'ac',
+    cssClass: 'buff'
   },
-  // Add future buffs here easily:
   'strengthBuff': {
     displayName: 'Strength',
     affectedStat: 'attack',
     cssClass: 'strength'
-  },
-  'hasteBufff': {
-    displayName: 'Haste',
-    affectedStat: 'attackSpeed',
-    cssClass: 'haste'
   }
 };
 
 // Export the registry
 window.StatusEffectRegistry = StatusEffectRegistry;
 
+// Fetch abilities from the server
+async function fetchAbilities() {
+  try {
+    const response = await fetch('/api/abilities');
+    const abilities = await response.json();
+    
+    // Create Action objects from the data
+    abilities.forEach(ability => {
+      ActionRegistry[ability.id] = new Action(ability);
+    });
+    
+    console.log('Abilities loaded from server:', ActionRegistry);
+  } catch (error) {
+    console.error('Error fetching abilities:', error);
+    
+    // Set up some default actions as fallback
+    ActionRegistry = {
+      'attack': new Action({
+        id: 'attack',
+        name: 'Attack',
+        description: 'Deal physical damage to an enemy',
+        energyCost: 0,
+        targetType: 'enemy',
+        type: 'attack'
+      }),
+      'fireball': new Action({
+        id: 'fireball',
+        name: 'Fireball',
+        description: 'Cast a damaging fire spell on an enemy',
+        energyCost: 20,
+        targetType: 'enemy',
+        type: 'cast'
+      })
+    };
+  }
+}
+
+// Load abilities when the script loads
+fetchAbilities();
+
 // Get all available actions
 function getAvailableActions() {
   return Object.values(ActionRegistry);
 }
 
-// Get action by type
-function getAction(actionType) {
-  if (actionType === ActionTypes.CAST) {
-    // Default to fireball if no spell type is specified
-    return ActionRegistry['fireball'];
+// Fetch abilities for a specific class
+async function fetchAbilitiesForClass(className) {
+  try {
+    const response = await fetch(`/api/abilities/${className}`);
+    const abilities = await response.json();
+    return abilities.map(ability => new Action(ability));
+  } catch (error) {
+    console.error(`Error fetching abilities for ${className}:`, error);
+    return [ActionRegistry['attack']]; // Fallback to basic attack
   }
-  return ActionRegistry[actionType];
 }
+
+// Get action by ID
+function getAction(actionId) {
+  return ActionRegistry[actionId];
+}
+
+// Make these functions available globally
+window.getAvailableActions = getAvailableActions;
+window.getAction = getAction;
+window.fetchAbilitiesForClass = fetchAbilitiesForClass;

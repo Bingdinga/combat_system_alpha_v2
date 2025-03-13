@@ -1,54 +1,52 @@
-// GameClasses.js - Defines character classes and abilities
-
+// server/GameClasses.js
 const CharacterClasses = {
     FIGHTER: {
         name: 'Fighter',
-        description: 'Masters of martial combat, skilled with a variety of weapons and armor.',
+        // description: 'Masters of martial combat, skilled with a variety of weapons and armor.',
+        description: '...',
         baseAbilityScores: {
-            strength: 15,
-            dexterity: 12,
-            constitution: 14,
-            intelligence: 8,
-            wisdom: 10,
-            charisma: 10
+            strength: 5,
+            dexterity: 1,
+            constitution: 3,
+            intelligence: -1,
+            wisdom: 0
         },
-        baseAC: 15, // Chain mail
-        baseHealth: 70, // New higher health value
-        abilities: ['Second Wind', 'Action Surge'],
-        hitDie: 10 // d10 hit die
+        baseAC: 17,
+        baseHealth: 70,
+        abilities: ['attack', 'secondWind'],
+        hitDie: 10
     },
     WIZARD: {
         name: 'Wizard',
-        description: 'Scholarly magic-users capable of manipulating the structures of reality.',
+        // description: 'Scholarly magic-users capable of manipulating the structures of reality.',
+        description: '...',
         baseAbilityScores: {
-            strength: 8,
-            dexterity: 14,
-            constitution: 12,
-            intelligence: 15,
-            wisdom: 10,
-            charisma: 10
+            strength: -1,
+            dexterity: 2,
+            constitution: 1,
+            intelligence: 5,
+            wisdom: 0
         },
-        baseAC: 12, // Mage armor
-        baseHealth: 40, // New lower health value
-        abilities: ['Arcane Recovery', 'Spell Mastery'],
-        spells: ['Magic Missile', 'Shield', 'Fireball'],
-        hitDie: 6 // d6 hit die
+        baseAC: 12,
+        baseHealth: 40,
+        abilities: ['attack', 'fireball', 'shield'],
+        hitDie: 6
     },
     ROGUE: {
         name: 'Rogue',
-        description: 'Skilled tricksters who use stealth and cunning to overcome obstacles.',
+        // description: 'Skilled tricksters who use stealth and cunning to overcome obstacles.',
+        description: '...',
         baseAbilityScores: {
-            strength: 10,
-            dexterity: 15,
-            constitution: 12,
-            intelligence: 13,
-            wisdom: 10,
-            charisma: 12
+            strength: 0,
+            dexterity: 5,
+            constitution: 1,
+            intelligence: 2,
+            wisdom: 0
         },
-        baseAC: 14, // Leather armor + high dex
-        baseHealth: 50, // Medium health value
-        abilities: ['Sneak Attack', 'Cunning Action'],
-        hitDie: 8 // d8 hit die
+        baseAC: 14,
+        baseHealth: 50,
+        abilities: ['attack', 'sneakAttack', 'evasion'],
+        hitDie: 8
     }
 };
 

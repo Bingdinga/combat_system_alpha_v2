@@ -278,7 +278,12 @@ class CombatUI {
         // Update AC
         const acEl = entityEl.querySelector('.entity-ac');
         if (acEl) {
-            acEl.textContent = `AC: ${entity.ac || 10}`;
+            // Use getAC method if available, otherwise fall back to base ac
+            const displayAC = typeof entity.getAC === 'function' ? 
+                entity.getAC() : 
+                (entity.ac || 10);
+            
+            acEl.textContent = `AC: ${displayAC}`;
         }
 
         // Update energy
@@ -447,88 +452,70 @@ class CombatUI {
         this.combatTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
-    showSpellSelectionModal() {
+    async showSpellSelectionModal() {
         const localPlayer = this.combatManager.getLocalPlayer();
         if (!localPlayer) return;
 
-        // Base spell options all classes have
-        const spellOptions = [
-            { id: 'cast:heal', name: 'Healing Word', description: 'Restore 1d4 + WIS health to an ally' }
-        ];
+        try {
+            // Fetch abilities for the player's class
+            const abilities = await window.fetchAbilitiesForClass(localPlayer.characterClass);
 
-        // Add class-specific spells
-        if (localPlayer.characterClass === 'WIZARD') {
-            spellOptions.push(
-                { id: 'cast:fireball', name: 'Fireball', description: 'Deal 2d6 + INT fire damage to an enemy' },
-                { id: 'cast:shield', name: 'Shield', description: 'Increase your AC by 5 for 3 rounds' }
-            );
-        } else if (localPlayer.characterClass === 'FIGHTER') {
-            spellOptions.push(
-                { id: 'cast:second_wind', name: 'Second Wind', description: 'Recover 1d10 + level hit points' }
-            );
-        } else if (localPlayer.characterClass === 'ROGUE') {
-            spellOptions.push(
-                { id: 'cast:cunning_action', name: 'Cunning Action', description: 'Take an extra action this turn' }
-            );
-        }
+            // Filter out non-castable abilities and abilities the player can't use
+            const castableAbilities = abilities
+                .filter(action => action.type === 'cast') // Only show castable abilities
+                .filter(action => action.isValid(localPlayer)); // Only show valid actions
 
-        // Set title
-        this.selectionTitle.textContent = 'Select a Spell';
+            // Set title
+            this.selectionTitle.textContent = 'Select an Ability';
 
-        // Clear options
-        this.selectionOptions.innerHTML = '';
+            // Clear options
+            this.selectionOptions.innerHTML = '';
 
-        // Add options with descriptions
-        spellOptions.forEach(option => {
-            const optionEl = document.createElement('div');
-            optionEl.className = 'selection-option';
-            optionEl.setAttribute('data-option-id', option.id);
+            // Add options with descriptions
+            castableAbilities.forEach(ability => {
+                const optionEl = document.createElement('div');
+                optionEl.className = 'selection-option';
+                optionEl.setAttribute('data-option-id', ability.id);
 
-            const nameEl = document.createElement('div');
-            nameEl.className = 'option-name';
-            nameEl.textContent = option.name;
+                const nameEl = document.createElement('div');
+                nameEl.className = 'option-name';
+                nameEl.textContent = ability.name;
 
-            const descEl = document.createElement('div');
-            descEl.className = 'option-description';
-            descEl.textContent = option.description;
+                const descEl = document.createElement('div');
+                descEl.className = 'option-description';
+                descEl.textContent = ability.description;
 
-            optionEl.appendChild(nameEl);
-            optionEl.appendChild(descEl);
+                optionEl.appendChild(nameEl);
+                optionEl.appendChild(descEl);
 
-            // Add click handler
-            optionEl.addEventListener('click', () => {
-                this.hideSelectionModal();
+                // Add click handler
+                optionEl.addEventListener('click', () => {
+                    this.hideSelectionModal();
 
-                // Now handle target selection based on spell type
-                const entities = this.combatManager.getEntities();
-                const spellType = option.id;
-                const spellName = option.id.split(':')[1];
+                    // Handle target selection based on ability target type
+                    const entities = this.combatManager.getEntities();
 
-                if (spellType === 'cast:fireball') {
-                    this.selectTarget('fireball', entities, target => {
-                        this.combatManager.performAction(spellType, target.id);
-                    });
-                } else if (spellType === 'cast:shield') {
-                    // Shield targets self directly
-                    this.combatManager.performAction(spellType, localPlayer.id);
-                } else if (spellType === 'cast:heal') {
-                    this.selectTarget('heal', entities, target => {
-                        this.combatManager.performAction(spellType, target.id);
-                    });
-                } else if (spellType === 'cast:second_wind') {
-                    // Second Wind targets self directly
-                    this.combatManager.performAction(spellType, localPlayer.id);
-                } else if (spellType === 'cast:cunning_action') {
-                    // Cunning Action targets self directly
-                    this.combatManager.performAction(spellType, localPlayer.id);
-                }
+                    if (ability.targetType === 'self') {
+                        // Self-targeted abilities
+                        this.combatManager.performAction(`cast:${ability.id}`, localPlayer.id);
+                    } else {
+                        // Abilities that need target selection
+                        this.selectTarget(ability.id, entities, target => {
+                            this.combatManager.performAction(`cast:${ability.id}`, target.id);
+                        });
+                    }
+                });
+
+                this.selectionOptions.appendChild(optionEl);
             });
 
-            this.selectionOptions.appendChild(optionEl);
-        });
-
-        // Show modal
-        this.selectionModal.classList.add('active');
+            // Show modal
+            this.selectionModal.classList.add('active');
+        } catch (error) {
+            console.error('Error showing spell selection modal:', error);
+            // Fallback in case of error - show a simple message
+            alert('Unable to load abilities. Please try again.');
+        }
     }
 
     // Show target selection modal
@@ -569,8 +556,8 @@ class CombatUI {
     }
 
     // Select target for an action
-    selectTarget(actionType, entities, callback) {
-        const action = getAction(actionType);
+    selectTarget(actionId, entities, callback) {
+        const action = window.getAction(actionId);
         if (!action) return;
 
         // Get valid targets based on action type

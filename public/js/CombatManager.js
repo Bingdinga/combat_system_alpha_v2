@@ -128,7 +128,6 @@ class CombatManager {
     }
 
     // Update combat state from server
-    // In CombatManager.js, replace or modify the updateCombatState method
     updateCombatState(combatState) {
         if (!this.active) return;
 
@@ -136,10 +135,6 @@ class CombatManager {
         combatState.entities.forEach(entityData => {
             const entity = this.entities.find(e => e.id === entityData.id);
             if (entity) {
-                // Store previous values before update
-                const prevHealth = entity.health;
-                const prevActionPoints = entity.actionPoints;
-
                 // Update the entity with server data
                 entity.update(entityData);
 
@@ -153,8 +148,7 @@ class CombatManager {
         this.log = combatState.log;
 
         newLogEntries.forEach(entry => {
-            // In CombatManager.js, replace that section with:
-            // Handle attack damage
+            // Handle different types of abilities
             if (entry.action === 'attack') {
                 // Handle critical success
                 if (entry.details && entry.details.isCritical) {
@@ -189,70 +183,61 @@ class CombatManager {
                     );
                 }
             }
+            // Handle cast spells based on their type
+            else if (entry.action === 'cast' && entry.details) {
+                switch (entry.details.spellType) {
+                    case 'fireball':
+                        if (entry.details.isCritical) {
+                            this.combatUI.showFloatingText(
+                                entry.targetId,
+                                `CRITICAL! -${entry.details.damage}`,
+                                'damage'
+                            );
+                        } else if (entry.details.isCriticalFail) {
+                            this.combatUI.showFloatingText(
+                                entry.actorId,
+                                `FIZZLE!`,
+                                'debuff'
+                            );
+                        } else if (entry.details.saveSuccess) {
+                            this.combatUI.showFloatingText(
+                                entry.targetId,
+                                `SAVE! -${entry.details.damage}`,
+                                'damage'
+                            );
+                        } else if (entry.details.damage) {
+                            this.combatUI.showFloatingText(
+                                entry.targetId,
+                                `-${entry.details.damage}`,
+                                'damage'
+                            );
+                        }
+                        break;
 
-            // Handle fireball spell damage
-            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'fireball') {
-                if (entry.details.isCritical) {
-                    this.combatUI.showFloatingText(
-                        entry.targetId,
-                        `CRITICAL! -${entry.details.spellDamage}`,
-                        'damage'
-                    );
-                } else if (entry.details.isCriticalFail) {
-                    this.combatUI.showFloatingText(
-                        entry.actorId,
-                        `FIZZLE!`,
-                        'debuff'
-                    );
-                } else if (entry.details.saveSuccess) {
-                    this.combatUI.showFloatingText(
-                        entry.targetId,
-                        `SAVE! -${entry.details.spellDamage}`,
-                        'damage'
-                    );
-                } else if (entry.details.spellDamage) {
-                    this.combatUI.showFloatingText(
-                        entry.targetId,
-                        `-${entry.details.spellDamage}`,
-                        'damage'
-                    );
+                    case 'shield':
+                        this.combatUI.showFloatingText(
+                            entry.actorId,
+                            `+${entry.details.buffValue} AC`,
+                            'buff'
+                        );
+                        break;
+
+                    case 'heal':
+                        this.combatUI.showFloatingText(
+                            entry.targetId,
+                            `+${entry.details.healAmount}`,
+                            'heal'
+                        );
+                        break;
+
+                    case 'secondWind':
+                        this.combatUI.showFloatingText(
+                            entry.actorId,
+                            `+${entry.details.healAmount}`,
+                            'heal'
+                        );
+                        break;
                 }
-            }
-
-            // Handle shield spell
-            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'shield') {
-                this.combatUI.showFloatingText(
-                    entry.actorId,
-                    `+${entry.details.buffValue} AC`,
-                    'buff'
-                );
-            }
-
-            // Handle healing
-            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'heal') {
-                this.combatUI.showFloatingText(
-                    entry.targetId,
-                    `+${entry.details.healAmount}`,
-                    'heal'
-                );
-            }
-
-            // Handle Second Wind (if implemented)
-            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'second_wind') {
-                this.combatUI.showFloatingText(
-                    entry.actorId,
-                    `+${entry.details.healAmount}`,
-                    'heal'
-                );
-            }
-
-            // Handle Cunning Action (if implemented)
-            if (entry.action === 'cast' && entry.details && entry.details.spellType === 'cunning_action') {
-                this.combatUI.showFloatingText(
-                    entry.actorId,
-                    `EXTRA ACTION`,
-                    'buff'
-                );
             }
 
             // Handle defeat messages
@@ -261,15 +246,6 @@ class CombatManager {
                     entry.entityId,
                     'Defeated!',
                     'damage'
-                );
-            }
-
-            // Handle defense buff
-            if (entry.action === 'defend' && entry.details && entry.details.buffValue) {
-                this.combatUI.showFloatingText(
-                    entry.actorId,
-                    `+DEF ${entry.details.buffValue}`,
-                    'buff'
                 );
             }
         });

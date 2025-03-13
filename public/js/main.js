@@ -129,8 +129,10 @@ function showCharacterCreation() {
     characterCreationScreen.classList.remove('hidden');
     roomInfo.classList.add('hidden');
 
+    // Generate class options dynamically
+    generateClassOptions();
+
     // Reset selection
-    classOptions.forEach(opt => opt.classList.remove('selected'));
     selectedClass = null;
     createCharacterBtn.disabled = true;
 
@@ -138,21 +140,30 @@ function showCharacterCreation() {
     updateCharacterPreview(null);
 }
 
-function updateCharacterPreview(className) {
+async function updateCharacterPreview(className) {
     const abilityScoresPreview = document.getElementById('ability-scores-preview');
     const previewAC = document.getElementById('preview-ac');
     const previewHP = document.getElementById('preview-hp');
+    const previewAbilities = document.getElementById('preview-abilities');
+
+    // Clear abilities list
+    if (previewAbilities) {
+        previewAbilities.innerHTML = '';
+    }
 
     if (!className) {
         // Default values
-        const abilities = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+        const abilities = ['STR', 'DEX', 'CON', 'INT', 'WIS'];
         abilities.forEach(ability => {
-            const abilityElement = abilityScoresPreview.querySelector(`.ability-score:nth-child(${abilities.indexOf(ability) + 1})`);
+            const abilityElement = abilityScoresPreview.querySelector(
+                `.ability-score:nth-child(${abilities.indexOf(ability) + 1})`);
             const valueElement = abilityElement.querySelector('.ability-value');
-            const modElement = abilityElement.querySelector('.ability-mod');
 
-            valueElement.textContent = '10';
-            modElement.textContent = '(+0)';
+            // Clear any existing classes
+            valueElement.className = 'ability-value';
+
+            // Set value to 0
+            valueElement.textContent = '0';
         });
 
         previewAC.textContent = '10';
@@ -160,40 +171,107 @@ function updateCharacterPreview(className) {
         return;
     }
 
-    // Get class template
-    const classTemplate = CharacterClasses[className];
+    // Get class template - either from window.CharacterClasses or fetch from server
+    const classTemplate = window.CharacterClasses ?
+        window.CharacterClasses[className] :
+        await fetchClass(className);
+
     if (!classTemplate) return;
 
     // Update ability scores
     for (const [ability, value] of Object.entries(classTemplate.baseAbilityScores)) {
         const abilityShort = ability.substring(0, 3).toUpperCase();
-        const abilityIndex = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].indexOf(abilityShort);
+        const abilityIndex = ['STR', 'DEX', 'CON', 'INT', 'WIS'].indexOf(abilityShort);
 
         if (abilityIndex !== -1) {
-            const abilityElement = abilityScoresPreview.querySelector(`.ability-score:nth-child(${abilityIndex + 1})`);
+            const abilityElement = abilityScoresPreview.querySelector(
+                `.ability-score:nth-child(${abilityIndex + 1})`);
             const valueElement = abilityElement.querySelector('.ability-value');
-            const modElement = abilityElement.querySelector('.ability-mod');
 
-            const modifier = Math.floor((value - 10) / 2);
-            valueElement.textContent = value;
-            modElement.textContent = `(${modifier >= 0 ? '+' : ''}${modifier})`;
+            // Clear any existing classes
+            valueElement.className = 'ability-value';
+
+            // Set the formatted text with proper color
+            if (value > 0) {
+                valueElement.classList.add('ability-positive');
+                valueElement.textContent = '+' + value;
+            } else if (value < 0) {
+                valueElement.classList.add('ability-negative');
+                valueElement.textContent = value; // Already has minus sign
+            } else {
+                valueElement.textContent = '0';
+            }
         }
     }
 
     // Update AC and HP
     previewAC.textContent = classTemplate.baseAC;
 
-    // Update to use the new health values
+    // Update base HP
     let baseHP = 50; // Default
     if (className === 'FIGHTER') baseHP = 70;
     else if (className === 'WIZARD') baseHP = 40;
     else if (className === 'ROGUE') baseHP = 50;
 
-    // Add constitution modifier to base HP
-    const conModifier = Math.floor((classTemplate.baseAbilityScores.constitution - 10) / 2);
-    const hp = baseHP + conModifier;
+    // Add constitution directly to base HP
+    const constitution = classTemplate.baseAbilityScores.constitution;
+    const hp = baseHP + constitution;
 
     previewHP.textContent = hp;
+
+    // Update abilities list if the element exists
+    if (previewAbilities && classTemplate.abilities) {
+        // Try to fetch detailed ability information
+        try {
+            const abilities = await window.fetchAbilitiesForClass(className);
+
+            abilities.forEach(ability => {
+                const abilityItem = document.createElement('li');
+
+                // Create name with energy cost (if any)
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'ability-name';
+                nameSpan.textContent = ability.name;
+
+                if (ability.energyCost > 0) {
+                    nameSpan.textContent += ` (${ability.energyCost} energy)`;
+                }
+
+                abilityItem.appendChild(nameSpan);
+
+                // Add description if available
+                if (ability.description) {
+                    const descSpan = document.createElement('div');
+                    descSpan.className = 'ability-description';
+                    descSpan.textContent = ability.description;
+                    abilityItem.appendChild(descSpan);
+                }
+
+                previewAbilities.appendChild(abilityItem);
+            });
+        } catch (error) {
+            // Fallback to just ability names if detailed info fails
+            console.error('Error fetching detailed ability info:', error);
+
+            classTemplate.abilities.forEach(abilityId => {
+                const abilityItem = document.createElement('li');
+                abilityItem.textContent = abilityId;
+                previewAbilities.appendChild(abilityItem);
+            });
+        }
+    }
+}
+
+async function fetchClass(className) {
+    try {
+        const response = await fetch('/api/classes');
+        const classes = await response.json();
+        window.CharacterClasses = classes; // Store for future use
+        return classes[className];
+    } catch (error) {
+        console.error(`Error fetching class ${className}:`, error);
+        return null;
+    }
 }
 
 // Setup Socket.io event listeners
@@ -288,6 +366,75 @@ function removePlayerFromList(playerId) {
     const playerItem = playerList.querySelector(`[data-player-id="${playerId}"]`);
     if (playerItem) {
         playerList.removeChild(playerItem);
+    }
+}
+
+// Generate class options dynamically
+function generateClassOptions() {
+    const container = document.getElementById('dynamic-class-options');
+    container.innerHTML = '';
+
+    for (const [className, classData] of Object.entries(CharacterClasses)) {
+        const classOption = document.createElement('div');
+        classOption.className = 'class-option';
+        classOption.setAttribute('data-class', className);
+
+        const nameHeader = document.createElement('h4');
+        nameHeader.textContent = classData.name;
+
+        const statList = document.createElement('ul');
+        statList.className = 'stat-preview';
+
+        // Add key stats
+        for (const [stat, value] of Object.entries(classData.baseAbilityScores)) {
+            if (['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom'].includes(stat)) {
+                const statItem = document.createElement('li');
+                const statName = stat.substring(0, 3).toUpperCase();
+
+                // Create the stat name element
+                const statNameElement = document.createElement('span');
+                statNameElement.textContent = statName + ' ';
+
+                // Create the value element with color
+                const statValueElement = document.createElement('span');
+                statValueElement.className = 'stat-value';
+
+                if (value > 0) {
+                    statValueElement.classList.add('ability-positive');
+                    statValueElement.textContent = '+' + value;
+                } else if (value < 0) {
+                    statValueElement.classList.add('ability-negative');
+                    statValueElement.textContent = value; // Already has minus sign
+                } else {
+                    statValueElement.textContent = '0';
+                }
+
+                statItem.appendChild(statNameElement);
+                statItem.appendChild(statValueElement);
+                statList.appendChild(statItem);
+            }
+        }
+
+        // Add AC
+        const acItem = document.createElement('li');
+        acItem.textContent = `AC: ${classData.baseAC}`;
+        statList.appendChild(acItem);
+
+        // Append elements
+        classOption.appendChild(nameHeader);
+        classOption.appendChild(statList);
+
+        // Add click event
+        classOption.addEventListener('click', () => {
+            document.querySelectorAll('.class-option').forEach(opt =>
+                opt.classList.remove('selected'));
+            classOption.classList.add('selected');
+            selectedClass = className;
+            updateCharacterPreview(className);
+            document.getElementById('create-character-btn').disabled = false;
+        });
+
+        container.appendChild(classOption);
     }
 }
 

@@ -35,7 +35,6 @@
                 </div>
                 <button id="join-btn" class="btn btn-primary">Join Room</button>
             </div>
-
             <!-- Character Creation Screen -->
             <div id="character-creation" class="hidden">
                 <h2>Create Your Character</h2>
@@ -43,37 +42,8 @@
                 <div class="char-creation-container">
                     <div class="class-selection">
                         <h3>Choose Your Class</h3>
-                        <div class="class-options">
-                            <div class="class-option" data-class="FIGHTER">
-                                <h4>Fighter</h4>
-                                <p>Masters of martial combat, skilled with weapons and armor.</p>
-                                <ul class="stat-preview">
-                                    <li>STR: 15</li>
-                                    <li>DEX: 12</li>
-                                    <li>CON: 14</li>
-                                    <li>AC: 15</li>
-                                </ul>
-                            </div>
-                            <div class="class-option" data-class="WIZARD">
-                                <h4>Wizard</h4>
-                                <p>Scholarly magic-users capable of manipulating reality.</p>
-                                <ul class="stat-preview">
-                                    <li>INT: 15</li>
-                                    <li>DEX: 14</li>
-                                    <li>CON: 12</li>
-                                    <li>AC: 12</li>
-                                </ul>
-                            </div>
-                            <div class="class-option" data-class="ROGUE">
-                                <h4>Rogue</h4>
-                                <p>Skilled tricksters who use stealth and cunning.</p>
-                                <ul class="stat-preview">
-                                    <li>DEX: 15</li>
-                                    <li>INT: 13</li>
-                                    <li>CHA: 12</li>
-                                    <li>AC: 14</li>
-                                </ul>
-                            </div>
+                        <div class="class-options" id="dynamic-class-options">
+                            <!-- Class options will be dynamically generated here -->
                         </div>
                     </div>
 
@@ -82,38 +52,39 @@
                         <div id="ability-scores-preview">
                             <div class="ability-score">
                                 <span class="ability-name">STR</span>
-                                <span class="ability-value">10</span>
-                                <span class="ability-mod">(+0)</span>
+                                <span class="ability-value">0</span>
+                                <span class="ability-mod" style="display:none;"></span>
                             </div>
                             <div class="ability-score">
                                 <span class="ability-name">DEX</span>
-                                <span class="ability-value">10</span>
-                                <span class="ability-mod">(+0)</span>
+                                <span class="ability-value">0</span>
+                                <span class="ability-mod" style="display:none;"></span>
                             </div>
                             <div class="ability-score">
                                 <span class="ability-name">CON</span>
-                                <span class="ability-value">10</span>
-                                <span class="ability-mod">(+0)</span>
+                                <span class="ability-value">0</span>
+                                <span class="ability-mod" style="display:none;"></span>
                             </div>
                             <div class="ability-score">
                                 <span class="ability-name">INT</span>
-                                <span class="ability-value">10</span>
-                                <span class="ability-mod">(+0)</span>
+                                <span class="ability-value">0</span>
+                                <span class="ability-mod" style="display:none;"></span>
                             </div>
                             <div class="ability-score">
                                 <span class="ability-name">WIS</span>
-                                <span class="ability-value">10</span>
-                                <span class="ability-mod">(+0)</span>
-                            </div>
-                            <div class="ability-score">
-                                <span class="ability-name">CHA</span>
-                                <span class="ability-value">10</span>
-                                <span class="ability-mod">(+0)</span>
+                                <span class="ability-value">0</span>
+                                <span class="ability-mod" style="display:none;"></span>
                             </div>
                         </div>
                         <div class="character-details">
                             <p>AC: <span id="preview-ac">10</span></p>
-                            <p>HP: <span id="preview-hp">10</span></p>
+                            <p>HP: <span id="preview-hp">50</span></p>
+                        </div>
+                        <div class="character-abilities">
+                            <h4>Abilities:</h4>
+                            <ul id="preview-abilities">
+                                <!-- Abilities will be dynamically added here -->
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -123,17 +94,18 @@
                     <button id="create-character-btn" class="btn btn-primary" disabled>Create Character</button>
                 </div>
             </div>
-
-            <div id="room-info" class="hidden">
-                <h2>Room: <span id="room-id-display"></span></h2>
-                <div class="room-details">
-                    <h3>Players</h3>
-                    <ul id="player-list"></ul>
-                </div>
-                <button id="start-combat-btn" class="btn btn-action">Start Combat</button>
-                <button id="leave-room-btn" class="btn btn-secondary">Leave Room</button>
-            </div>
         </div>
+
+        <div id="room-info" class="hidden">
+            <h2>Room: <span id="room-id-display"></span></h2>
+            <div class="room-details">
+                <h3>Players</h3>
+                <ul id="player-list"></ul>
+            </div>
+            <button id="start-combat-btn" class="btn btn-action">Start Combat</button>
+            <button id="leave-room-btn" class="btn btn-secondary">Leave Room</button>
+        </div>
+    </div>
     </div>
 
     <!-- Combat Screen -->

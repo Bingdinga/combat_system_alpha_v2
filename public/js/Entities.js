@@ -16,18 +16,17 @@ class Entity {
         this.actionRechargeRate = data.actionRechargeRate || 5000; // milliseconds per action point
         this.lastActionTime = data.lastActionTime || Date.now();
 
-        // New D&D ability scores
+        // Updated ability scores: direct modifier system in [-13, 13] range
         this.abilityScores = data.abilityScores || {
-            strength: 10,     // Physical power, melee attacks
-            dexterity: 10,    // Agility, ranged attacks, AC
-            constitution: 10, // Health, hit points
-            intelligence: 10, // Learning, arcane magic
-            wisdom: 10,       // Awareness, divine magic
-            charisma: 10      // Force of personality
+            strength: 0,
+            dexterity: 0,
+            constitution: 0,
+            intelligence: 0,
+            wisdom: 0
         };
 
-        // AC calculation based on dexterity
-        this.ac = data.ac || 10 + this.getAbilityModifier('dexterity');
+        // AC calculation based directly on dexterity
+        this.ac = data.ac || 10 + (this.abilityScores.dexterity);
 
         // Legacy stats still used in existing code
         this.stats = data.stats || {
@@ -36,12 +35,6 @@ class Entity {
             magicPower: 8
         };
         this.statusEffects = data.statusEffects || [];
-    }
-
-    // Calculate ability modifier from score
-    getAbilityModifier(abilityName) {
-        const score = this.abilityScores[abilityName];
-        return Math.floor((score - 10) / 2);
     }
 
     // Get current AC including effects
@@ -60,30 +53,25 @@ class Entity {
         return baseAC;
     }
 
-    // Check if entity is alive
+    // Other methods remain the same...
     isAlive() {
         return this.health > 0;
     }
 
-    // Get health percentage
     getHealthPercentage() {
         return Math.max(0, Math.min(100, (this.health / this.maxHealth) * 100));
     }
 
-    // Get energy percentage
     getEnergyPercentage() {
         return Math.max(0, Math.min(100, (this.energy / this.maxEnergy) * 100));
     }
 
-    // Get action points percentage (for progress bar)
     getActionPointsPercentage() {
-        // This calculates the percentage to the next full action point
         const fullPoints = Math.floor(this.actionPoints);
         const partialPoint = this.actionPoints - fullPoints;
         return partialPoint * 100;
     }
 
-    // Update from server data
     update(data) {
         this.health = data.health;
         this.maxHealth = data.maxHealth;
@@ -108,12 +96,10 @@ class Entity {
         this.statusEffects = data.statusEffects;
     }
 
-    // Check if entity can perform an action (has at least 1 action point)
     canAct() {
         return this.actionPoints >= 1 && this.isAlive();
     }
 
-    // Update getEffectiveStat method
     getEffectiveStat(statName) {
         let baseValue = this.stats[statName] || 0;
         let modifier = 0;
@@ -138,7 +124,6 @@ class Entity {
         return Math.max(0, baseValue + modifier);
     }
 
-    // Calculate damage to be dealt to a target
     calculateDamage(targetEntity, actionType) {
         let damage = 0;
 
@@ -164,72 +149,103 @@ class Entity {
     }
 }
 
-// Add this near the top of the file, after the Entity class but before the PlayerEntity class
+// Client-side character class cache
+window.CharacterClasses = {};
 
-// Character class definitions (to be expanded)
-const CharacterClasses = {
-    FIGHTER: {
-        name: 'Fighter',
-        description: 'Masters of martial combat, skilled with a variety of weapons and armor.',
-        baseAbilityScores: {
-            strength: 15,
-            dexterity: 12,
-            constitution: 14,
-            intelligence: 8,
-            wisdom: 10,
-            charisma: 10
-        },
-        baseAC: 15, // Chain mail
-        abilities: ['Second Wind', 'Action Surge']
-    },
-    WIZARD: {
-        name: 'Wizard',
-        description: 'Scholarly magic-users capable of manipulating the structures of reality.',
-        baseAbilityScores: {
-            strength: 8,
-            dexterity: 14,
-            constitution: 12,
-            intelligence: 15,
-            wisdom: 10,
-            charisma: 10
-        },
-        baseAC: 12, // Mage armor
-        abilities: ['Arcane Recovery', 'Spell Mastery']
-    },
-    ROGUE: {
-        name: 'Rogue',
-        description: 'Skilled tricksters who use stealth and cunning to overcome obstacles.',
-        baseAbilityScores: {
-            strength: 10,
-            dexterity: 15,
-            constitution: 12,
-            intelligence: 13,
-            wisdom: 10,
-            charisma: 12
-        },
-        baseAC: 14, // Leather armor + high dex
-        abilities: ['Sneak Attack', 'Cunning Action']
+// Function to fetch character classes from server
+async function fetchCharacterClasses() {
+    try {
+        const response = await fetch('/api/classes');
+        if (!response.ok) {
+            throw new Error('Failed to fetch character classes');
+        }
+        const classes = await response.json();
+        window.CharacterClasses = classes;
+        console.log('Character classes loaded from server:', classes);
+        return classes;
+    } catch (error) {
+        console.error('Error fetching character classes:', error);
+        // Return default classes as fallback
+        return {
+            FIGHTER: {
+                name: 'Fighter',
+                description: 'Masters of martial combat, skilled with weapons and armor.',
+                baseAbilityScores: {
+                    strength: 5,
+                    dexterity: 1,
+                    constitution: 3,
+                    intelligence: -1,
+                    wisdom: 0
+                },
+                baseAC: 15,
+                abilities: ['Second Wind', 'Action Surge']
+            },
+            WIZARD: {
+                name: 'Wizard',
+                description: 'Scholarly magic-users capable of manipulating reality.',
+                baseAbilityScores: {
+                    strength: -1,
+                    dexterity: 2,
+                    constitution: 1,
+                    intelligence: 5,
+                    wisdom: 0
+                },
+                baseAC: 12,
+                abilities: ['Arcane Recovery', 'Spell Mastery']
+            },
+            ROGUE: {
+                name: 'Rogue',
+                description: 'Skilled tricksters who use stealth and cunning.',
+                baseAbilityScores: {
+                    strength: 0,
+                    dexterity: 5,
+                    constitution: 1,
+                    intelligence: 2,
+                    wisdom: 0
+                },
+                baseAC: 14,
+                abilities: ['Sneak Attack', 'Cunning Action']
+            }
+        };
     }
-};
+}
 
-// Add this to the PlayerEntity class
+// Load character classes when the script loads
+fetchCharacterClasses();
+
+// PlayerEntity class
 class PlayerEntity extends Entity {
     constructor(data) {
         super(data);
         this.isLocalPlayer = data.isLocalPlayer || false;
         this.characterClass = data.characterClass || null;
+
+        // Apply class attributes if class is set
+        if (this.characterClass && window.CharacterClasses[this.characterClass]) {
+            this.applyClassAttributes(this.characterClass);
+        }
     }
 
     // Method to set character class
     setCharacterClass(className) {
-        const classTemplate = CharacterClasses[className];
-        if (!classTemplate) return false;
+        if (!window.CharacterClasses[className]) {
+            console.error(`Character class ${className} not found`);
+            return false;
+        }
 
         this.characterClass = className;
+        return this.applyClassAttributes(className);
+    }
 
-        // Apply class base stats (in a real implementation, you'd want to
-        // account for existing modifications rather than overwriting)
+    // Apply class attributes based on CharacterClasses definition
+    applyClassAttributes(className) {
+        const classTemplate = window.CharacterClasses[className];
+        if (!classTemplate) return false;
+
+        // Apply class base ability scores
         this.abilityScores = { ...classTemplate.baseAbilityScores };
+
+        // Apply class AC
         this.ac = classTemplate.baseAC;
 
         return true;
@@ -255,4 +271,4 @@ function createEntity(data) {
     return new Entity(data);
 }
 
-window.createEntity = createEntity; // Add this line to make it globally available
+window.createEntity = createEntity; // Make it globally available
