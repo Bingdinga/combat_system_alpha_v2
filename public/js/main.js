@@ -35,6 +35,9 @@ function initialize() {
 
   // Setup UI event listeners
   setupEventListeners();
+  
+  // Setup Socket.io event listeners - make sure this line is here!
+  setupSocketListeners();
 
   // Show login form
   showLoginForm();
@@ -143,7 +146,7 @@ async function updateCharacterPreview(className) {
     const abilities = ['STR', 'DEX', 'CON', 'INT', 'WIS'];
     abilities.forEach(ability => {
       const abilityElement = abilityScoresPreview.querySelector(
-          `.ability-score:nth-child(${abilities.indexOf(ability) + 1})`);
+        `.ability-score:nth-child(${abilities.indexOf(ability) + 1})`);
       const valueElement = abilityElement.querySelector('.ability-value');
 
       // Clear any existing classes
@@ -170,7 +173,7 @@ async function updateCharacterPreview(className) {
 
     if (abilityIndex !== -1) {
       const abilityElement = abilityScoresPreview.querySelector(
-          `.ability-score:nth-child(${abilityIndex + 1})`);
+        `.ability-score:nth-child(${abilityIndex + 1})`);
       const valueElement = abilityElement.querySelector('.ability-value');
 
       // Clear any existing classes
@@ -269,6 +272,10 @@ function setupSocketListeners() {
 
     // Show room info
     showRoomInfo();
+
+    console.log('Start combat button in DOM:', document.getElementById('start-combat-btn'));
+    console.log('Room info container:', document.getElementById('room-info'));
+    console.log('Room info display style:', document.getElementById('room-info').style.display);
   });
 
   // Player joined event
@@ -306,6 +313,11 @@ function showRoomInfo() {
   loginForm.classList.add('hidden');
   characterCreationScreen.classList.add('hidden');
   roomInfo.classList.remove('hidden');
+
+  // Make sure the start combat button is visible
+  startCombatBtn.style.display = 'block';
+
+  console.log('Room info displayed, combat button should be visible');
 }
 
 // Update player list

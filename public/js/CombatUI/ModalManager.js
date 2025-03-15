@@ -1,5 +1,7 @@
 // /public/js/CombatUI/ModalManager.js
 
+import { fetchAbilitiesForClass } from '../Actions/index.js';
+
 export class ModalManager {
     constructor(modalElement, titleElement, optionsContainer, componentFactory) {
       this.modalElement = modalElement;
@@ -13,8 +15,8 @@ export class ModalManager {
       if (!localPlayer) return;
   
       try {
-        const abilities = await window.fetchAbilitiesForClass(localPlayer.characterClass);
-        
+        const abilities = await fetchAbilitiesForClass(localPlayer.characterClass);
+                
         // Filter to valid castable abilities
         const castableAbilities = abilities
           .filter(action => action.type === 'cast')

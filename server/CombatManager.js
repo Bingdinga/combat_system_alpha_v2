@@ -118,45 +118,39 @@ class CombatManager {
       {
         name: 'Goblin',
         health: 30,
-        attack: 8,
-        defense: 3,
         actionRechargeRate: 7000 * enemyRechargeMult,
         abilityScores: {
-          strength: 8,
-          dexterity: 14,
-          constitution: 10,
-          intelligence: 10,
-          wisdom: 8
+          strength: 3,
+          dexterity: 2,
+          constitution: 2,
+          intelligence: -1,
+          wisdom: -1
         },
-        ac: 13 // Base AC for goblin
+        ac: 11 // Base AC for goblin
       },
       {
         name: 'Orc',
         health: 50,
-        attack: 12,
-        defense: 6,
         actionRechargeRate: 9000 * enemyRechargeMult,
         abilityScores: {
-          strength: 16,
-          dexterity: 12,
-          constitution: 16,
-          intelligence: 7,
-          wisdom: 11
+          strength: 3,
+          dexterity: 2,
+          constitution: 3,
+          intelligence: -1,
+          wisdom: 0
         },
         ac: 13 // Base AC for orc 
       },
       {
         name: 'Troll',
         health: 70,
-        attack: 15,
-        defense: 8,
         actionRechargeRate: 13000 * enemyRechargeMult,
         abilityScores: {
-          strength: 18,
-          dexterity: 13,
-          constitution: 20,
-          intelligence: 7,
-          wisdom: 9
+          strength: 5,
+          dexterity: -1,
+          constitution: 7,
+          intelligence: -1,
+          wisdom: -1
         },
         ac: 15 // Base AC for troll
       }

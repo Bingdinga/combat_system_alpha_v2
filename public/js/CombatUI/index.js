@@ -5,7 +5,7 @@ import { EntityRenderer } from './EntityRenderer.js';
 import { ActionPointManager } from './ActionPointManager.js';
 import { ModalManager } from './ModalManager.js';
 import { EventHandlers } from './EventHandlers.js';
-import { getAction } from '../Actions/index.js';
+import { ActionTypes, getAction, fetchAbilitiesForClass } from '../Actions/index.js';
 
 export class CombatUI {
   constructor(combatManager) {
@@ -20,7 +20,7 @@ export class CombatUI {
     // Setup event listeners
     this.setupEventListeners();
 
-    this.eventHandlers = new EventHandlers(combatManager, this.modalManager, getAction);
+    // this.eventHandlers = new EventHandlers(combatManager, this.modalManager, getAction);
   }
 
   // Cache all frequently used DOM elements

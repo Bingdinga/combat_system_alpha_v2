@@ -1,5 +1,7 @@
 // /public/js/CombatUI/EventHandlers.js
 
+import { ActionTypes, getAction } from '../Actions/index.js';
+
 export class EventHandlers {
     constructor(combatManager, modalManager) {
       this.combatManager = combatManager;
@@ -50,7 +52,7 @@ export class EventHandlers {
     }
   
     selectTarget(actionId, entities, callback) {
-      const action = window.getAction(actionId);
+      const action = getAction(actionId);
       if (!action) return;
   
       const localPlayer = this.combatManager.getLocalPlayer();
