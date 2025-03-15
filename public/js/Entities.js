@@ -124,29 +124,29 @@ class Entity {
         return Math.max(0, baseValue + modifier);
     }
 
-    calculateDamage(targetEntity, actionType) {
-        let damage = 0;
+    // calculateDamage(targetEntity, actionType) {
+    //     let damage = 0;
 
-        if (actionType === 'attack') {
-            // Physical attack
-            const attackPower = this.getEffectiveStat('attack');
-            const variation = 0.2; // ±20% damage variation
-            const randomFactor = 1 - variation + (Math.random() * variation * 2);
-            damage = attackPower * randomFactor;
-        } else if (actionType === 'cast') {
-            // Magic attack
-            const magicPower = this.getEffectiveStat('magicPower');
-            const variation = 0.3; // ±30% damage variation
-            const randomFactor = 1 - variation + (Math.random() * variation * 2);
-            damage = magicPower * randomFactor;
-        }
+    //     if (actionType === 'attack') {
+    //         // Physical attack
+    //         const attackPower = this.getEffectiveStat('attack');
+    //         const variation = 0.2; // ±20% damage variation
+    //         const randomFactor = 1 - variation + (Math.random() * variation * 2);
+    //         damage = attackPower * randomFactor;
+    //     } else if (actionType === 'cast') {
+    //         // Magic attack
+    //         const magicPower = this.getEffectiveStat('magicPower');
+    //         const variation = 0.3; // ±30% damage variation
+    //         const randomFactor = 1 - variation + (Math.random() * variation * 2);
+    //         damage = magicPower * randomFactor;
+    //     }
 
-        // Apply target's defense
-        const defense = targetEntity.getEffectiveStat('defense');
-        damage = Math.max(1, damage - (defense * 0.5));
+    //     // Apply target's defense
+    //     const defense = targetEntity.getEffectiveStat('defense');
+    //     damage = Math.max(1, damage - (defense * 0.5));
 
-        return Math.floor(damage);
-    }
+    //     return Math.floor(damage);
+    // }
 }
 
 // Client-side character class cache

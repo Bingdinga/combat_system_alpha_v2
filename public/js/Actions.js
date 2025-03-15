@@ -82,11 +82,6 @@ let ActionRegistry = {};
 
 // Status effect registry
 const StatusEffectRegistry = {
-  'defenseBuff': {
-    displayName: 'Defense',
-    affectedStat: 'defense',
-    cssClass: 'buff'
-  },
   'acBuff': {
     displayName: 'Shield',
     affectedStat: 'ac',

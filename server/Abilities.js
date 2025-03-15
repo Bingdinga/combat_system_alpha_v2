@@ -38,7 +38,7 @@ const AbilityRegistry = {
       type: 'attack'
     }
   },
-  
+
   // Fireball spell
   fireball: {
     id: 'fireball',
@@ -55,7 +55,7 @@ const AbilityRegistry = {
       type: 'cast'
     }
   },
-  
+
   // Shield spell
   shield: {
     id: 'shield',
@@ -72,7 +72,7 @@ const AbilityRegistry = {
       type: 'cast'
     }
   },
-  
+
   // Healing spell
   heal: {
     id: 'heal',
@@ -89,7 +89,7 @@ const AbilityRegistry = {
       type: 'cast'
     }
   },
-  
+
   // Fighter's Second Wind
   secondWind: {
     id: 'secondWind',
@@ -106,7 +106,7 @@ const AbilityRegistry = {
       type: 'cast'
     }
   },
-  
+
   // Sneak Attack
   sneakAttack: {
     id: 'sneakAttack',
@@ -123,7 +123,7 @@ const AbilityRegistry = {
       type: 'passive'
     }
   },
-  
+
   // Evasion (Rogue ability)
   evasion: {
     id: 'evasion',
@@ -145,17 +145,17 @@ const AbilityRegistry = {
 // Define handlers for server-side execution
 const abilityHandlers = {
   // Basic attack implementation
-  attack: function(combat, actor, target) {
+  attack: function (combat, actor, target) {
     // D20 roll (1-20)
     const d20Roll = Math.floor(Math.random() * 20) + 1;
-    
+
     // Use strength directly as modifier
     const attackModifier = actor.abilityScores.strength;
     const attackRoll = d20Roll + attackModifier;
-    
+
     // Target's AC
     const targetAC = target.ac || 10 + target.abilityScores.dexterity;
-    
+
     // Create base result object with roll details
     const result = {
       details: {
@@ -166,22 +166,22 @@ const abilityHandlers = {
         attackType: 'melee'
       }
     };
-    
+
+    const baseDamage = (10 + attackModifier);
+
     // Critical hit on natural 20
     if (d20Roll === 20) {
       // Calculate critical damage (double dice)
-      const baseDamage = actor.stats.attack * (Math.random() * 0.3 + 0.85);
       const damage = Math.floor(baseDamage * 2);
-      
       // Apply damage to target
       target.health = Math.max(0, target.health - damage);
-      
+
       // Update result with damage details
       result.details.damage = damage;
       result.details.targetHealthBefore = target.health + damage;
       result.details.targetHealthAfter = target.health;
       result.details.isCritical = true;
-      
+
       result.message = `${actor.name} rolled a natural 20! Critical hit on ${target.name} for ${damage} damage!`;
     }
     // Critical failure on natural 1
@@ -192,31 +192,32 @@ const abilityHandlers = {
     // Normal hit/miss logic
     else if (attackRoll >= targetAC) {
       // Calculate normal hit damage
-      const baseDamage = actor.stats.attack * (Math.random() * 0.5 + 0.75);
-      const damage = Math.floor(baseDamage);
-      
+      // const attackModifier = actor.abilityScores.strength;
+      const damage = baseDamage;
+
+
       // Apply damage to target
       target.health = Math.max(0, target.health - damage);
-      
+
       // Update result with damage details
       result.details.damage = damage;
       result.details.targetHealthBefore = target.health + damage;
       result.details.targetHealthAfter = target.health;
       result.details.isHit = true;
-      
+
       result.message = `${actor.name} rolled ${attackRoll} vs AC ${targetAC} and hit ${target.name} for ${damage} damage!`;
-    } 
+    }
     else {
       // Miss
       result.details.isHit = false;
       result.message = `${actor.name} rolled ${attackRoll} vs AC ${targetAC} and missed ${target.name}!`;
     }
-    
+
     return result;
   },
-  
+
   // Fireball spell
-  fireball: function(combat, actor, target) {
+  fireball: function (combat, actor, target) {
     // Check energy cost
     if (actor.energy < 20) {
       return {
@@ -224,17 +225,17 @@ const abilityHandlers = {
         details: { failed: true }
       };
     }
-    
+
     // Consume energy
     actor.energy -= 20;
-    
+
     // Spell attack roll
     const d20Roll = Math.floor(Math.random() * 20) + 1;
-    
+
     // Use intelligence for wizards, wisdom otherwise
     const spellAbility = actor.characterClass === 'WIZARD' ? 'intelligence' : 'wisdom';
     const spellAbilityMod = actor.abilityScores[spellAbility];
-    
+
     // Create base result details
     const result = {
       details: {
@@ -247,26 +248,26 @@ const abilityHandlers = {
         actorEnergyAfter: actor.energy
       }
     };
-    
+
+    // Roll 2d6 for base damage
+    const damageRoll1 = Math.floor(Math.random() * 6) + 1;
+    const damageRoll2 = Math.floor(Math.random() * 6) + 1;
+    const baseDamage = damageRoll1 + damageRoll2 + spellAbilityMod;
+
     // Critical hit on natural 20
     if (d20Roll === 20) {
-      // Roll 2d6 for base damage
-      const damageRoll1 = Math.floor(Math.random() * 6) + 1;
-      const damageRoll2 = Math.floor(Math.random() * 6) + 1;
-      const baseDamage = damageRoll1 + damageRoll2 + spellAbilityMod;
-      
       // Double damage on crit
       const damage = baseDamage * 2;
-      
+
       // Apply damage
       target.health = Math.max(0, target.health - damage);
-      
+
       // Update result
       result.details.damage = damage;
       result.details.isCritical = true;
       result.details.targetHealthBefore = target.health + damage;
       result.details.targetHealthAfter = target.health;
-      
+
       result.message = `${actor.name} rolled a natural 20! Critical Fireball hits ${target.name} for ${damage} fire damage!`;
     }
     // Critical failure on natural 1
@@ -278,54 +279,55 @@ const abilityHandlers = {
     else {
       // Calculate save DC
       const saveDC = 8 + spellAbilityMod + 2;
-      
+
       // Target makes Dexterity saving throw
       const targetDexMod = target.abilityScores.dexterity;
       const targetSaveRoll = Math.floor(Math.random() * 20) + 1 + targetDexMod;
-      
+
       // Roll 2d6 for base damage
-      const damageRoll1 = Math.floor(Math.random() * 6) + 1;
-      const damageRoll2 = Math.floor(Math.random() * 6) + 1;
-      const baseDamage = damageRoll1 + damageRoll2 + spellAbilityMod;
-      
+      // const damageRoll1 = Math.floor(Math.random() * 6) + 1;
+      // const damageRoll2 = Math.floor(Math.random() * 6) + 1;
+      // const baseDamage = damageRoll1 + damageRoll2 + spellAbilityMod;
+      const damage = baseDamage;
+
       // Add save details to result
       result.details.saveDC = saveDC;
       result.details.targetSaveRoll = targetSaveRoll;
-      
+
       // Failed save - full damage
       if (targetSaveRoll < saveDC) {
         // Apply full damage
-        target.health = Math.max(0, target.health - baseDamage);
-        
+        target.health = Math.max(0, target.health - damage);
+
         // Update result
-        result.details.damage = baseDamage;
+        result.details.damage = damage;
         result.details.saveSuccess = false;
-        result.details.targetHealthBefore = target.health + baseDamage;
+        result.details.targetHealthBefore = target.health + damage;
         result.details.targetHealthAfter = target.health;
-        
-        result.message = `${actor.name}'s Fireball hits ${target.name} (DC ${saveDC} vs ${targetSaveRoll}). ${target.name} takes ${baseDamage} fire damage!`;
+
+        result.message = `${actor.name}'s Fireball hits ${target.name} (DC ${saveDC} vs ${targetSaveRoll}). ${target.name} takes ${damage} fire damage!`;
       }
       // Successful save - half damage
       else {
         // Calculate and apply half damage
-        const halfDamage = Math.floor(baseDamage / 2);
+        const halfDamage = Math.floor(damage / 2);
         target.health = Math.max(0, target.health - halfDamage);
-        
+
         // Update result
         result.details.damage = halfDamage;
         result.details.saveSuccess = true;
         result.details.targetHealthBefore = target.health + halfDamage;
         result.details.targetHealthAfter = target.health;
-        
+
         result.message = `${actor.name} casts Fireball, but ${target.name} partially dodges it (DC ${saveDC} vs ${targetSaveRoll}). ${target.name} takes ${halfDamage} fire damage!`;
       }
     }
-    
+
     return result;
   },
-  
+
   // Shield spell
-  shield: function(combat, actor, target) {
+  shield: function (combat, actor, target) {
     // Check energy cost
     if (actor.energy < 20) {
       return {
@@ -333,10 +335,10 @@ const abilityHandlers = {
         details: { failed: true }
       };
     }
-    
+
     // Consume energy
     actor.energy -= 20;
-    
+
     // Create shield effect
     const shieldBuff = {
       id: uuidv4(),
@@ -345,10 +347,10 @@ const abilityHandlers = {
       duration: 3,
       applied: Date.now()
     };
-    
+
     // Apply shield effect to actor
     actor.statusEffects.push(shieldBuff);
-    
+
     return {
       message: `${actor.name} casts Shield, increasing AC by 5 for 3 rounds!`,
       details: {
@@ -361,9 +363,9 @@ const abilityHandlers = {
       }
     };
   },
-  
+
   // Healing Word spell
-  heal: function(combat, actor, target) {
+  heal: function (combat, actor, target) {
     // Check energy cost
     if (actor.energy < 20) {
       return {
@@ -371,24 +373,24 @@ const abilityHandlers = {
         details: { failed: true }
       };
     }
-    
+
     // Consume energy
     actor.energy -= 20;
-    
+
     // Roll 1d4 + wisdom for healing
     const healRoll = Math.floor(Math.random() * 4) + 1;
     const healModifier = actor.abilityScores.wisdom;
     const healAmount = Math.max(1, healRoll + healModifier); // Minimum 1 HP healed
-    
+
     // Store original health for reporting
     const originalHealth = target.health;
-    
+
     // Apply healing (capped at max health)
     target.health = Math.min(target.maxHealth, target.health + healAmount);
-    
+
     // Calculate actual amount healed (could be less if near max health)
     const actualHeal = target.health - originalHealth;
-    
+
     return {
       message: `${actor.name} casts Healing Word on ${target.name}, restoring ${actualHeal} health!`,
       details: {
@@ -404,9 +406,9 @@ const abilityHandlers = {
       }
     };
   },
-  
+
   // Fighter's Second Wind
-  secondWind: function(combat, actor, target) {
+  secondWind: function (combat, actor, target) {
     // Check if actor is a fighter
     if (actor.characterClass !== 'FIGHTER') {
       return {
@@ -414,7 +416,7 @@ const abilityHandlers = {
         details: { failed: true }
       };
     }
-    
+
     // Check energy cost
     if (actor.energy < 20) {
       return {
@@ -422,24 +424,24 @@ const abilityHandlers = {
         details: { failed: true }
       };
     }
-    
+
     // Consume energy
     actor.energy -= 20;
-    
+
     // Roll 1d10 + level (assumed to be 1 at this point)
     const healRoll = Math.floor(Math.random() * 10) + 1;
     const level = 1; // Starting level
     const healAmount = healRoll + level;
-    
+
     // Store original health for reporting
     const originalHealth = actor.health;
-    
+
     // Apply healing (capped at max health)
     actor.health = Math.min(actor.maxHealth, actor.health + healAmount);
-    
+
     // Calculate actual amount healed
     const actualHeal = actor.health - originalHealth;
-    
+
     return {
       message: `${actor.name} uses Second Wind, recovering ${actualHeal} health!`,
       details: {
@@ -454,9 +456,9 @@ const abilityHandlers = {
       }
     };
   },
-  
+
   // Rogue's Sneak Attack (passive ability)
-  sneakAttack: function(combat, actor, target) {
+  sneakAttack: function (combat, actor, target) {
     // This is a passive ability that modifies attacks rather than being directly activated
     return {
       message: `Sneak Attack is a passive ability that triggers automatically during attacks.`,
@@ -465,9 +467,9 @@ const abilityHandlers = {
       }
     };
   },
-  
+
   // Rogue's Evasion (passive ability)
-  evasion: function(combat, actor, target) {
+  evasion: function (combat, actor, target) {
     // This is a passive ability that helps with saving throws
     return {
       message: `Evasion is a passive ability that helps with area effect damage.`,
@@ -496,7 +498,7 @@ function getAbilitiesForClass(className) {
     WIZARD: ['attack', 'fireball', 'shield'],
     ROGUE: ['attack', 'sneakAttack', 'evasion']
   };
-  
+
   // Return the appropriate abilities or an empty array
   const abilityIds = classAbilityMap[className] || [];
   return abilityIds.map(id => AbilityRegistry[id] ? AbilityRegistry[id].clientData : null).filter(Boolean);

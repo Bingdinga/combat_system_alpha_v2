@@ -73,11 +73,6 @@ class CombatManager {
         lastActionTime: Date.now(),
         abilityScores: { ...classTemplate.baseAbilityScores },
         ac: classTemplate.baseAC,
-        stats: {
-          attack: 10 + strMod,
-          defense: 5 + dexMod,
-          magicPower: 8 + (player.characterClass === 'WIZARD' ? intMod : wisMod)
-        },
         statusEffects: []
       };
     });
@@ -185,11 +180,6 @@ class CombatManager {
         lastActionTime: Date.now(),
         abilityScores: enemyType.abilityScores,
         ac: enemyType.ac,
-        stats: {
-          attack: enemyType.attack,
-          defense: enemyType.defense,
-          magicPower: 5
-        },
         statusEffects: []
       });
     }
