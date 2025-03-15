@@ -202,6 +202,12 @@ input[type="text"]:focus {
     border-radius: 8px;
     padding: 0.7rem;
     position: relative;
+    cursor: pointer;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.entity-card:hover:not(.selected):not(.dead) {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
 .entity-card.player {
@@ -213,11 +219,14 @@ input[type="text"]:focus {
 }
 
 .entity-card.selected {
-    box-shadow: 0 0 0 2px #03dac6;
+    box-shadow: 0 0 0 3px #03dac6, 0 0 10px 2px rgba(3, 218, 198, 0.5);
+    transform: translateY(-2px);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .entity-card.dead {
     opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .entity-name {
@@ -638,10 +647,6 @@ input[type="text"]:focus {
     }
 }
 
-/* Make sure entity cards have position relative for absolute positioning */
-.entity-card {
-    position: relative;
-}
 
 .option-name {
     font-weight: bold;
@@ -891,4 +896,18 @@ input[type="text"]:focus {
 
 .stat-value {
     font-weight: bold;
+}
+
+.target-info {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    text-align: center;
+    color: #03dac6;
+    font-size: 0.9rem;
+}
+
+.target-info.hidden {
+    display: none;
 }

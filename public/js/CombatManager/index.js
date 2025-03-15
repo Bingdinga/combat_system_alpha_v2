@@ -4,6 +4,7 @@ import { CombatState } from './CombatState.js';
 import { CombatUpdater } from './CombatUpdater.js';
 import { socketManager } from '../Network/index.js';
 import { createEntity } from '../Entities/index.js';
+import { ActionTypes, getAction } from '../Actions/index.js';
 
 export class CombatManager {
     constructor() {
@@ -14,6 +15,7 @@ export class CombatManager {
 
         // Initialize UI
         this.initializeUI();
+        console.log('CombatUI initialized:', this.combatUI);
 
         // Setup socket event listeners
         this.setupSocketListeners();
@@ -277,6 +279,27 @@ export class CombatManager {
         resultScreen.classList.add('active');
     }
 
+    selectTarget(entityId) {
+        // console.log('CombatManager.selectTarget called with entityId:', entityId);
+
+        // If we're clicking the already selected target, deselect it
+        if (this.state.selectedTargetId === entityId) {
+            // console.log('Deselecting current target');
+            this.state.clearSelectedTarget();
+        } else {
+            // Otherwise, select the new target
+            // console.log('Selecting new target:', entityId);
+            this.state.setSelectedTarget(entityId);
+        }
+
+        // Update the UI to show the selected entity
+        if (this.combatUI) {
+            this.combatUI.updateSelectedEntity(this.state.selectedTargetId);
+        } else {
+            console.error('combatUI is undefined');
+        }
+    }
+
     // Perform an action
     performAction(actionType, targetId) {
         if (!this.state.active) return;
@@ -297,6 +320,17 @@ export class CombatManager {
             return;
         }
 
+        // If no targetId is provided, use the selected target if it exists
+        if (!targetId && this.state.selectedTargetId) {
+            targetId = this.state.selectedTargetId;
+        }
+
+        // If we still don't have a targetId, prompt for target selection
+        if (!targetId) {
+            this.promptForTargetSelection(actionType);
+            return;
+        }
+
         // Set a cooldown to prevent rapid clicking
         this.state.setActionCooldown(true, 300);
 
@@ -309,11 +343,43 @@ export class CombatManager {
 
         // Apply a temporary optimistic update for better UI feedback
         // This will be overridden by the next server update
-        const originalPoints = localPlayer.actionPoints;
+        // const originalPoints = localPlayer.actionPoints;
         localPlayer.actionPoints = Math.max(0, Math.floor(localPlayer.actionPoints) - 1 + (localPlayer.actionPoints % 1));
 
         // Update UI
         this.combatUI.updateActionPoints();
+    }
+
+    promptForTargetSelection(actionType) {
+        const localPlayer = this.getLocalPlayer();
+
+        if (actionType.startsWith('cast:')) {
+            const spellId = actionType.split(':')[1];
+            const action = this.getAction(spellId);
+
+            if (action && action.targetType === 'self') {
+                // Self-targeted spells don't need target selection
+                this.performAction(actionType, localPlayer.id);
+                return;
+            }
+        }
+
+        // For other actions, show the target selection modal
+        if (actionType === ActionTypes.ATTACK) {
+            this.combatUI.eventHandlers.selectTarget(ActionTypes.ATTACK, this.getEntities(), target => {
+                this.performAction(ActionTypes.ATTACK, target.id);
+            });
+        } else if (actionType.startsWith('cast:')) {
+            const spellId = actionType.split(':')[1];
+            this.combatUI.eventHandlers.selectTarget(spellId, this.getEntities(), target => {
+                this.performAction(actionType, target.id);
+            });
+        }
+    }
+
+    // Add this helper method to get an action 
+    getAction(actionId) {
+        return getAction(actionId); // Use the imported getAction function
     }
 
     // Proxy methods that delegate to state
